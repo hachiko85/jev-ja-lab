@@ -4,7 +4,7 @@ import json
 
 import yaml
 
-from openjev_ja.eval.summary import build_evaluation_summary
+from openjev_ja.aggregate.summary import build_evaluation_summary
 
 
 def test_summary_aggregates_dataset_then_primitive(tmp_path) -> None:

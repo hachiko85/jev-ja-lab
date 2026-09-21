@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import argparse
 
+from openjev_ja.aggregate.summary import build_evaluation_summary
 from openjev_ja.eval.orchestrate import load_orchestration_config, run_orchestration
-from openjev_ja.eval.summary import build_evaluation_summary
 
 
 def run_workflow(config_path: str, *, phase: str) -> None:

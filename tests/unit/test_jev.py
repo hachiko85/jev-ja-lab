@@ -1,7 +1,7 @@
 import httpx
 
 from openjev_ja.eval.metrics import summarize
-from openjev_ja.eval.scorers import JevScorer
+from openjev_ja.methods.typesafe_jev import JevScorer
 
 
 def test_jev_http_schema_and_response_mapping() -> None:

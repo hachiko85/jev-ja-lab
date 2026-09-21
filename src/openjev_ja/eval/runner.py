@@ -10,8 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from openjev_ja.common import BenchmarkItem
+from openjev_ja.common.protocols import Scorer
+from openjev_ja.common.schemas import SCHEMA_VERSION
 from openjev_ja.eval.metrics import summarize
-from openjev_ja.eval.scorers.base import Scorer
 
 
 def _git_commit() -> str | None:
@@ -97,6 +98,7 @@ def run_evaluation(
             predictions.append(row)
     elapsed = time.perf_counter() - started
     metadata = {
+        "schema_version": SCHEMA_VERSION,
         "run_id": run_id,
         "created_at": datetime.now(UTC).isoformat(),
         "dataset": dataset_name,

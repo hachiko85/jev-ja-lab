@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import argparse
 
-from openjev_ja.eval.summary import build_evaluation_summary
+from openjev_ja.aggregate.summary import build_evaluation_summary
 
 
 def main(argv: list[str] | None = None) -> int:

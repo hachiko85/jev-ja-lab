@@ -14,12 +14,9 @@ import httpx
 from openjev_ja.common import DatasetUnavailableError
 from openjev_ja.eval.local_data import load_local_benchmark
 from openjev_ja.eval.runner import run_evaluation
-from openjev_ja.eval.scorers import (
-    JevScorer,
-    MaskedLMScorer,
-    QwenDirectScorer,
-    resolve_scorer_class,
-)
+from openjev_ja.methods.bert_masked_lm import MaskedLMScorer
+from openjev_ja.methods.next_token_logit import NextTokenLogitScorer
+from openjev_ja.methods.typesafe_jev import JevScorer
 
 _FETCH_SKIP_EXCEPTIONS = (FileNotFoundError, DatasetUnavailableError, OSError, httpx.HTTPError)
 
@@ -37,6 +34,30 @@ def _model_reference(model: dict[str, Any], runtime: dict[str, Any]) -> str:
     return str(Path(runtime["models_root"]) / str(model["path"]))
 
 
+def resolve_scorer_class(model_name: str, revision: str | None = None) -> type:
+    """Pick NextTokenLogitScorer or MaskedLMScorer from the model's own config.
+
+    Kept only as the fallback behind an explicit `scorer: auto` (or omitted
+    `scorer`) in a model config; per JEV_JA_LAB_REFACTOR_GUIDE_v2 section 29,
+    new configs should prefer naming the method explicitly (`scorer:
+    qwen-direct` / `scorer: masked-lm` / ...), since the same model can in
+    principle support more than one method. Any encoder architecture ending
+    in "ForMaskedLM" (BERT, RoBERTa, ModernBERT, ELECTRA, DeBERTa, ALBERT,
+    ...) gets MaskedLMScorer; every causal or image-text-to-text
+    architecture gets NextTokenLogitScorer.
+    """
+    try:
+        from transformers import AutoConfig
+    except ImportError as exc:
+        raise RuntimeError("Install evaluation dependencies: pip install -e '.[eval]'") from exc
+    kwargs: dict[str, str] = {"revision": revision} if revision else {}
+    config = AutoConfig.from_pretrained(model_name, **kwargs)
+    architectures = getattr(config, "architectures", None) or []
+    if any(str(architecture).endswith("ForMaskedLM") for architecture in architectures):
+        return MaskedLMScorer
+    return NextTokenLogitScorer
+
+
 def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) -> Any:
     scorer_name = model.get("scorer")
     if scorer_name == "jev":
@@ -47,12 +68,12 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
         )
     model_path = _model_reference(model, runtime)
     if scorer_name in (None, "auto"):
-        # No explicit scorer: pick QwenDirectScorer (causal / image-text-to-text)
+        # No explicit scorer: pick NextTokenLogitScorer (causal / image-text-to-text)
         # or MaskedLMScorer (BERT-family encoders) from the model's own config,
         # so a repo_id alone is enough for either kind of model.
         scorer_cls = resolve_scorer_class(str(model_path), model.get("revision"))
     elif scorer_name == "qwen-direct":
-        scorer_cls = QwenDirectScorer
+        scorer_cls = NextTokenLogitScorer
     elif scorer_name == "masked-lm":
         scorer_cls = MaskedLMScorer
     else:

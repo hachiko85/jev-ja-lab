@@ -3,8 +3,8 @@ from __future__ import annotations
 import time
 from pathlib import Path
 
-from openjev_ja.common import ScoreResult
 from openjev_ja.common.revisions import local_git_revision
+from openjev_ja.common.types import ScoreResult
 
 TEMPLATES = {
     "ja": "正しい答えは「{option}」である。",

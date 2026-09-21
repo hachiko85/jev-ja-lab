@@ -4,7 +4,7 @@ import os
 import time
 from typing import Any
 
-from openjev_ja.common import ScoreResult
+from openjev_ja.common.types import ScoreResult
 
 
 class JevScorer:

@@ -1,6 +1,6 @@
 from openjev_ja.common import BenchmarkItem
+from openjev_ja.common.testing import MockScorer
 from openjev_ja.eval.runner import run_evaluation
-from openjev_ja.eval.scorers import MockScorer
 
 
 def test_five_item_mock_vertical_slice(tmp_path) -> None:

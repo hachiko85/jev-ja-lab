@@ -1,9 +1,15 @@
+"""Deterministic scorer double for smoke tests and vertical-slice checks.
+
+Not a Jev-like decision method — kept out of `methods/` so it is never
+mistaken for one of the systems under comparison.
+"""
+
 from __future__ import annotations
 
 import hashlib
 import time
 
-from openjev_ja.common import ScoreResult
+from openjev_ja.common.types import ScoreResult
 
 
 class MockScorer:

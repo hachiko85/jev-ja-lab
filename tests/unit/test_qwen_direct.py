@@ -1,6 +1,6 @@
 import pytest
 
-from openjev_ja.eval.scorers.qwen_direct import validate_answer_tokens
+from openjev_ja.common.candidate_labels import validate_answer_tokens
 
 
 class FakeTokenizer:

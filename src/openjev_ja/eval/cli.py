@@ -3,9 +3,12 @@ from __future__ import annotations
 import argparse
 import json
 
+from openjev_ja.common.testing import MockScorer
 from openjev_ja.eval.datasets import DATASET_NAMES, load_benchmark, resolve_dataset_revision
 from openjev_ja.eval.runner import run_evaluation
-from openjev_ja.eval.scorers import JevScorer, MockScorer, NLICrossEncoderScorer, QwenDirectScorer
+from openjev_ja.methods.next_token_logit import NextTokenLogitScorer
+from openjev_ja.methods.nli_cross_encoder import NLICrossEncoderScorer
+from openjev_ja.methods.typesafe_jev import JevScorer
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -31,7 +34,7 @@ def create_scorer(args: argparse.Namespace):
     if args.scorer == "mock":
         return MockScorer()
     if args.scorer == "qwen-direct":
-        return QwenDirectScorer(
+        return NextTokenLogitScorer(
             args.model or "Qwen/Qwen3.5-4B",
             device=args.device,
             dtype=args.dtype,
