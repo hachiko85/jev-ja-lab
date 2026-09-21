@@ -1,0 +1,11 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+
+RUN python -m pip install --no-cache-dir \
+    --trusted-host pypi.org \
+    --trusted-host files.pythonhosted.org \
+    "datasets>=4.0" \
+    "huggingface-hub>=0.34,<2" \
+    "matplotlib>=3.10" \
+    "pytest>=8.3" \
+    "ruff>=0.11"

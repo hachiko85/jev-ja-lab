@@ -1,0 +1,65 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jev-ja-lab"
+version = "0.2.0"
+description = "Reproducible Japanese decision-model evaluation harness"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+dependencies = []
+
+[project.optional-dependencies]
+eval = [
+  "accelerate>=1.10",
+  "datasets>=4.0",
+  "httpx>=0.27",
+  "protobuf>=6.32",
+  "sentencepiece>=0.2.2",
+  "torch>=2.6",
+  "transformers>=5.17",
+]
+viz = [
+  "matplotlib>=3.10",
+  "pandas>=2.2",
+  "pyarrow>=18",
+  "PyYAML>=6.0",
+]
+orchestrate = [
+  "matplotlib>=3.10",
+  "pyarrow>=18",
+  "PyYAML>=6.0",
+]
+dev = [
+  "pytest>=8.3",
+  "ruff>=0.11",
+]
+
+[project.scripts]
+jev-ja-lab-eval = "openjev_ja.eval.cli:main"
+jev-ja-lab-radar = "openjev_ja.visualize.cli:main"
+jev-ja-lab-orchestrate = "openjev_ja.eval.orchestrate_cli:main"
+jev-ja-lab-eval-noul = "openjev_ja.eval.eval_noul:main"
+jev-ja-lab-eval-choice = "openjev_ja.eval.eval_choice:main"
+jev-ja-lab-eval-score = "openjev_ja.eval.eval_score:main"
+jev-ja-lab-eval-summary = "openjev_ja.eval.eval_summary:main"
+jev-ja-lab-eval-workflow = "openjev_ja.eval.workflow:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/openjev_ja"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: requires network access or external credentials",
+  "gpu: requires a local model and accelerator",
+]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]

@@ -1,0 +1,21 @@
+version: 1
+language: ja
+theme: dark
+title: OpenJEV モデル比較
+note: Webダッシュボードから選択したモデルと表示中の評価軸を使用。
+figure_size: [13, 11]
+dpi: 360
+label_size: 11
+label_pad: 20
+label_line_spacing: 1.15
+title_size: 22
+title_y: 0.975
+note_y: 0.895
+plot_top: 0.79
+plot_left: 0.12
+plot_right: 0.88
+legend_columns: 3
+ticks: [0.2, 0.4, 0.6, 0.8, 1.0]
+line_width: 2.4
+marker_size: 4.8
+fill_alpha: 0.07

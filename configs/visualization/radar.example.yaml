@@ -1,0 +1,45 @@
+version: 1
+title: "Japanese benchmark comparison"
+subtitle: "Example values · accuracy · common 0–100% scale"
+note: "Example data only. Replace each source path with measured result files."
+output: "../../results/charts/radar-example.png"
+input_scale: fraction
+dpi: 180
+figure_size: [10, 10]
+legend_columns: 3
+
+axes:
+  - id: mmmlu_ja
+    label: "MMMLU\nJA-JP"
+  - id: jmmlu
+    label: "JMMLU"
+  - id: jgpqa_diamond
+    label: "JGPQA\nDiamond"
+  - id: jcommonsenseqa
+    label: "JCommonsenseQA"
+  - id: xwinograd_ja
+    label: "XWinograd\nJA"
+  - id: gsm8k_ja_mc4
+    label: "GSM8K JA\n4 choices"
+  - id: gsm8k_ja_mc10
+    label: "GSM8K JA\n10 choices"
+
+series:
+  - name: "Model A · example"
+    color: "#c87832"
+    source:
+      path: "../../tests/fixtures/radar/model_a.json"
+      axis_column: dataset
+      metric: accuracy
+  - name: "Model B · example"
+    color: "#4b83ad"
+    source:
+      path: "../../tests/fixtures/radar/model_b.json"
+      axis_column: dataset
+      metric: accuracy
+  - name: "Model C · example"
+    color: "#4d4d4d"
+    source:
+      path: "../../tests/fixtures/radar/model_c.json"
+      axis_column: dataset
+      metric: accuracy

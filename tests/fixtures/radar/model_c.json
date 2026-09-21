@@ -1,0 +1,9 @@
+[
+  {"dataset": "mmmlu_ja", "accuracy": 0.51},
+  {"dataset": "jmmlu", "accuracy": 0.48},
+  {"dataset": "jgpqa_diamond", "accuracy": 0.29},
+  {"dataset": "jcommonsenseqa", "accuracy": 0.57},
+  {"dataset": "xwinograd_ja", "accuracy": 0.55},
+  {"dataset": "gsm8k_ja_mc4", "accuracy": 0.44},
+  {"dataset": "gsm8k_ja_mc10", "accuracy": 0.31}
+]

@@ -1,0 +1,181 @@
+version: 1
+
+runtime:
+  run_name: eval-20260918
+  resume: true
+  selected_model_ids:
+    - qwen3.5-4b
+    - qwen3.5-2b
+    - qwen3-swallow-8b-rl-v0.2
+    - qwen3-4b-thinking-2507
+    - qwen3-4b-instruct-2507
+    - qwen3-1.7b
+    - qwen3-4b
+    - gemma-4-e2b-it
+  radar_model_ids:
+    - qwen3.5-4b
+    - qwen3.5-2b
+    - qwen3-swallow-8b-rl-v0.2
+    - qwen3-4b-thinking-2507
+    - qwen3-4b-instruct-2507
+    - qwen3-1.7b
+    - qwen3-4b
+  radar_name: radar-qwen-series
+  seed: 42
+  models_root: /models
+  datasets_root: /datasets
+  output_root: results
+  devices: [cuda:0, cuda:1]
+  parallelism: 2
+  batch_size: 32
+  worker_timeout_seconds: 7200
+
+models:
+  - id: qwen3.5-4b
+    label: Qwen3.5-4B
+    path: Qwen3.5-4B
+    dtype: bfloat16
+    color: "#4b83ad"
+  - id: gemma-4-e4b-it-qat
+    label: Gemma 4 E4B IT QAT
+    path: gemma-4-E4B-it-qat-mobile-transformers
+    dtype: bfloat16
+    color: "#c87832"
+  - id: gemma-4-e2b-it-qat
+    label: Gemma 4 E2B IT QAT
+    path: gemma-4-E2B-it-qat-mobile-transformers
+    dtype: bfloat16
+    color: "#4d4d4d"
+  - id: llm-jp-4-8b-thinking
+    label: LLM-jp 4 8B Thinking
+    path: llm-jp-4-8b-thinking
+    dtype: bfloat16
+    color: "#4a9b73"
+  - id: llm-jp-4-8b-instruct
+    label: LLM-jp 4 8B Instruct
+    path: llm-jp-4-8b-instruct
+    model_id: llm-jp-4-8b-instruct
+    dtype: bfloat16
+    color: "#8c62aa"
+  - id: sarashina2.2-1b-instruct-v0.1
+    label: Sarashina2.2 1B Instruct v0.1
+    path: sarashina2.2-1b-instruct-v0.1
+    dtype: bfloat16
+    metadata_revision: sha256:c1bdf6f4b9098581fa8e15533c7cef929e83d1cf1144532c4a65870d21cd18e8
+    color: "#3aa6a0"
+  - id: llm-jp-4-8b-base
+    label: LLM-jp 4 8B Base
+    path: llm-jp-4-8b-base
+    dtype: bfloat16
+    color: "#c44e52"
+  - id: sarashina2.2-3b-instruct-v0.1
+    label: Sarashina2.2 3B Instruct v0.1
+    path: sarashina2.2-3b-instruct-v0.1
+    dtype: bfloat16
+    color: "#59a14f"
+  - id: gemma-4-e4b-it
+    label: Gemma 4 E4B IT
+    path: gemma-4-E4B-it
+    dtype: bfloat16
+    batch_size: 8
+    color: "#e15759"
+  - id: qwen3.5-2b
+    label: Qwen3.5-2B
+    path: Qwen3.5-2B
+    dtype: bfloat16
+    color: "#f28e2b"
+  - id: qwen3-swallow-8b-rl-v0.2
+    label: Qwen3-Swallow 8B RL v0.2
+    path: Qwen3-Swallow-8B-RL-v0.2
+    dtype: bfloat16
+    color: "#af7aa1"
+  - id: qwen3-4b-thinking-2507
+    label: Qwen3 4B Thinking 2507
+    path: Qwen3-4B-Thinking-2507
+    dtype: bfloat16
+    color: "#59a14f"
+  - id: qwen3-4b-instruct-2507
+    label: Qwen3 4B Instruct 2507
+    path: Qwen3-4B-Instruct-2507
+    dtype: bfloat16
+    color: "#e15759"
+  - id: qwen3-1.7b
+    label: Qwen3 1.7B
+    path: Qwen3-1.7B
+    dtype: bfloat16
+    color: "#76b7b2"
+  - id: qwen3-4b
+    label: Qwen3 4B
+    path: Qwen3-4B
+    dtype: bfloat16
+    color: "#edc948"
+  - id: gemma-4-e2b-it
+    label: Gemma 4 E2B IT
+    path: gemma-4-E2B-it
+    dtype: bfloat16
+    batch_size: 8
+    color: "#b07aa1"
+
+datasets:
+  - id: mmmlu_ja
+    label: MMMLU JA-JP
+    expected_items: 14042
+    revision: 325a01dc3e173cac1578df94120499aaca2e2504
+    source:
+      format: arrow
+      path: openai___mmmlu/JA_JP/0.0.0/*/mmmlu-test.arrow
+  - id: jmmlu
+    label: JMMLU
+    expected_items: 7536
+    revision: 3637b25e444ccfdcde4d23a783cbe8e674faa01b
+    source:
+      format: jmmlu_zip
+      path: datasets--nlp-waseda--JMMLU/snapshots/*/JMMLU.zip
+  - id: jgpqa_diamond
+    label: JGPQA Diamond
+    expected_items: 198
+    source:
+      format: csv
+      path: datasets--llm-jp--jgpqa/snapshots/*/gpqa_diamond.csv
+  - id: jcommonsenseqa
+    label: "JCommonsense\nQA"
+    expected_items: 1119
+    revision: b72d3115609bed00c386701fcb40234a1fd08c7a
+    source:
+      format: arrow
+      path: sbintuitions___j_commonsense_qa/default/0.0.0/*/j_commonsense_qa-validation.arrow
+  - id: xwinograd_ja
+    label: XWinograd JA
+    expected_items: 959
+    revision: 90b619ef5278605cd4f572e3e8506ab16afd44f2
+    source:
+      format: arrow
+      path: Muennighoff___xwinograd/jp/0.0.0/*/xwinograd-test.arrow
+  - id: mgsm_ja
+    label: MGSM JA
+    expected_items: 250
+    revision: bd4f2be4127dc3d568a7a1ab13a07ceb921afff3
+    source:
+      format: arrow
+      path: jbross-ibm-research___mgsm/ja/0.0.0/*/mgsm-test.arrow
+  - id: gsm8k_ja_mc4
+    label: GSM8K JA MC4
+    expected_items: 1069
+    revision: 964859c892f49b8ec5b4b6dd2401169739c7458d
+    source:
+      format: arrow
+      path: SakanaAI___gsm8k-ja-test_250-1319/default/0.0.0/*/gsm8k-ja-test_250-1319-test.arrow
+  - id: gsm8k_ja_mc10
+    label: GSM8K JA MC10
+    expected_items: 1069
+    revision: 964859c892f49b8ec5b4b6dd2401169739c7458d
+    source:
+      format: arrow
+      path: SakanaAI___gsm8k-ja-test_250-1319/default/0.0.0/*/gsm8k-ja-test_250-1319-test.arrow
+  - id: jnli
+    label: JNLI
+    expected_items: 2434
+    revision: v1.1.0
+    source:
+      format: jsonl
+      path: JGLUE-v1.1.0/datasets/jnli-v1.1/valid-v1.1.json

@@ -1,0 +1,7 @@
+{
+  "seed": 42,
+  "dataset": "mmmlu_ja",
+  "scorer": "mock",
+  "limit": 5
+}
+
