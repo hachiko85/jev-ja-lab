@@ -48,22 +48,22 @@ GROUPS = [
     },
     {
         "method": "semif-ja(zero-shot)",
-        "label_top": "semif-ja", "label_bottom": "Qwen3.5-4B (4.66B)",
+        "label_top": "semif-ja 0-shot", "label_bottom": "Qwen3.5-4B (4.66B)",
         "single": "qwen3.5-4b", "params_b": 4.66, "latency_ms": 83.92,
     },
     {
         "method": "semif(zero-shot)",
-        "label_top": "semif", "label_bottom": "Qwen3.5-4B (4.66B)",
+        "label_top": "semif 0-shot", "label_bottom": "Qwen3.5-4B (4.66B)",
         "single": "semif-logit-qwen3.5-4b", "params_b": 4.66, "latency_ms": 65.87,
     },
     {
         "method": "AlexWortega_openjev 4B v2",
-        "label_top": "AlexWortega_openjev v2", "label_bottom": "Qwen3.5-4B (4.54B)",
+        "label_top": "AlexWortega_openjev 4B v2", "label_bottom": "Qwen3.5-4B (4.54B)",
         "single": "openjev-4b-v2", "params_b": 4.54, "latency_ms": 75.28,
     },
     {
         "method": "AlexWortega_openjev 0.8B",
-        "label_top": "AlexWortega_openjev v2", "label_bottom": "Qwen3.5-0.8B (0.85B)",
+        "label_top": "AlexWortega_openjev 0.8B v2", "label_bottom": "Qwen3.5-0.8B (0.85B)",
         "single": "openjev-0.8b", "params_b": 0.85, "latency_ms": 44.28,
     },
     {
@@ -89,8 +89,51 @@ GROUPS = [
         "label_top": "Jev v1.13.0", "label_bottom": None,
         "noul": 0.7386120142176127, "choice": 0.8474204549250123, "score": 0.8821615110661686,
         "params_b": None, "latency_ms": 235.12,
+        # Jev has no entry in eval-summary/eval_summary.json (API-only method,
+        # never copied in by build_eval_summary.py) so per-dataset radar data
+        # is read straight from its own run directory instead.
+        "radar_run": "eval-jev-latest", "radar_model_id": "jev-latest",
     },
 ]
+
+# Datasets common to every method above, per primitive (intersection checked
+# by hand against each method's summary.<primitive>.json) — the axes for the
+# per-primitive radar charts.
+PRIMITIVE_DATASETS: dict[str, list[str]] = {
+    "noul": [
+        "jad_afc_false", "jad_afc_nei", "jad_afc_true", "janli_entailment",
+        "jcola_in_domain", "jcola_out_of_domain", "jnli_contradiction",
+        "jnli_entailment", "jnli_missing_evidence", "paws_x_ja", "textdetox_ja",
+        "wrime_anger_binary", "wrime_joy_binary", "wrime_positive_binary",
+    ],
+    "choice": [
+        "mmmlu_ja", "jmmlu", "jgpqa_diamond", "jcommonsenseqa", "xwinograd_ja",
+        "mgsm_ja", "gsm8k_ja_mc4", "gsm8k_ja_mc10", "jnli",
+    ],
+    "score": [
+        "wrime_joy", "wrime_anger", "wrime_sentiment", "synthetic_urgency",
+        "synthetic_dissatisfaction", "synthetic_risk", "synthetic_relevance",
+    ],
+}
+PRIMITIVE_METRIC = {
+    "noul": "f1", "choice": "accuracy", "score": "normalized_quadratic_weighted_kappa",
+}
+DATASET_LABELS = {
+    "jad_afc_false": "JAD-AFC False", "jad_afc_nei": "JAD-AFC NEI",
+    "jad_afc_true": "JAD-AFC True", "janli_entailment": "JaNLI",
+    "jcola_in_domain": "JCoLA In", "jcola_out_of_domain": "JCoLA Out",
+    "jnli_contradiction": "JNLI矛盾", "jnli_entailment": "JNLI含意",
+    "jnli_missing_evidence": "JNLI情報不足", "paws_x_ja": "PAWS-X",
+    "textdetox_ja": "TextDetox", "wrime_anger_binary": "WRIME怒り有無",
+    "wrime_joy_binary": "WRIME喜び有無", "wrime_positive_binary": "WRIMEポジ有無",
+    "mmmlu_ja": "MMMLU", "jmmlu": "JMMLU", "jgpqa_diamond": "JGPQA",
+    "jcommonsenseqa": "JCommonsenseQA", "xwinograd_ja": "XWinograd",
+    "mgsm_ja": "MGSM", "gsm8k_ja_mc4": "GSM8K MC4", "gsm8k_ja_mc10": "GSM8K MC10",
+    "jnli": "JNLI", "wrime_joy": "WRIME喜び", "wrime_anger": "WRIME怒り",
+    "wrime_sentiment": "WRIME極性", "synthetic_urgency": "緊急度",
+    "synthetic_dissatisfaction": "不満度", "synthetic_risk": "危険度",
+    "synthetic_relevance": "関連度",
+}
 
 
 def build_table() -> list[dict]:
@@ -287,20 +330,16 @@ def build_scatter_and_latency_charts(rows: list[dict]) -> None:
     print("wrote", out2)
 
 
-def build_radar_chart(rows: list[dict]) -> None:
-    def legend_name(r: dict) -> str:
-        if r.get("label_bottom"):
-            return f"{r['label_top']} [{r['label_bottom']}]"
-        return r["label_top"]
+def _legend_name(r: dict) -> str:
+    if r.get("label_bottom"):
+        return f"{r['label_top']} [{r['label_bottom']}]"
+    return r["label_top"]
 
-    axis_ids = ("noul", "choice", "score")
-    axis_labels = ["Noul\n(二値判定・F1)", "Choice\n(多肢選択・accuracy)", "Score\n(順序尺度・QWK)"]
-    series = [
-        {"name": legend_name(r), "color": COLORS[i % len(COLORS)],
-         "values": [r[axis] for axis in axis_ids]}
-        for i, r in enumerate(rows)
-    ]
 
+def _render_radar(
+    series: list[dict], axis_labels: list[str], *,
+    title: str, subtitle: str, out_path: Path, label_fontsize: float = 13,
+) -> None:
     apply_font(plt)
     theme = {
         "figure_color": FIG_BG, "plot_color": PLOT_BG, "text_color": TEXT,
@@ -310,13 +349,13 @@ def build_radar_chart(rows: list[dict]) -> None:
     count = len(axis_labels)
     angles = [i * 2 * math.pi / count for i in range(count)]
     closed_angles = [*angles, angles[0]]
-    figure, axis = plt.subplots(figsize=(12, 12.8), subplot_kw={"polar": True})
+    figure, axis = plt.subplots(figsize=(13, 13.8), subplot_kw={"polar": True})
     figure.patch.set_facecolor(theme["figure_color"])
     axis.set_facecolor(theme["plot_color"])
     axis.set_theta_offset(math.pi / 2)
     axis.set_theta_direction(-1)
-    axis.set_xticks(angles, labels=axis_labels, fontsize=13)
-    axis.tick_params(axis="x", colors=theme["text_color"], pad=18)
+    axis.set_xticks(angles, labels=axis_labels, fontsize=label_fontsize)
+    axis.tick_params(axis="x", colors=theme["text_color"], pad=16)
     for angle, label in zip(angles, axis.get_xticklabels(), strict=True):
         h, v = math.sin(angle), math.cos(angle)
         label.set_horizontalalignment("left" if h > 0.15 else "right" if h < -0.15 else "center")
@@ -332,22 +371,31 @@ def build_radar_chart(rows: list[dict]) -> None:
         axis.plot(closed_angles, values, color=item["color"], linewidth=2.2,
                   marker="o", markersize=4.5, label=item["name"])
         axis.fill(closed_angles, values, color=item["color"], alpha=0.06)
-    figure.suptitle(
-        "全手法比較", fontsize=19, fontweight="bold", y=0.965, color=theme["text_color"]
-    )
-    figure.text(0.5, 0.935, "Noul(F1) / Choice(accuracy) / Score(QWK)",
-                ha="center", color=theme["muted_color"], fontsize=10)
-    legend = axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.06), ncol=1, frameon=False)
+    figure.suptitle(title, fontsize=19, fontweight="bold", y=0.965, color=theme["text_color"])
+    figure.text(0.5, 0.935, subtitle, ha="center", color=theme["muted_color"], fontsize=10)
+    legend = axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.05), ncol=1, frameon=False)
     for text in legend.get_texts():
         text.set_color(theme["text_color"])
-    figure.subplots_adjust(top=0.86, bottom=0.20, left=0.11, right=0.89)
+    figure.subplots_adjust(top=0.86, bottom=0.18, left=0.11, right=0.89)
     draw_footer(figure)
-    out = OUT / "radar-final-all-methods.png"
-    figure.savefig(out, dpi=180)
+    figure.savefig(out_path, dpi=180)
     plt.close(figure)
-    print("wrote", out)
+    print("wrote", out_path)
 
-    # Keep a YAML record of what fed the radar, for reproducibility/audit.
+
+def build_radar_chart(rows: list[dict]) -> None:
+    axis_ids = ("noul", "choice", "score")
+    axis_labels = ["Noul\n(二値判定・F1)", "Choice\n(多肢選択・accuracy)", "Score\n(順序尺度・QWK)"]
+    series = [
+        {"name": _legend_name(r), "color": COLORS[i % len(COLORS)],
+         "values": [r[axis] for axis in axis_ids]}
+        for i, r in enumerate(rows)
+    ]
+    _render_radar(
+        series, axis_labels, title="全手法比較",
+        subtitle="Noul(F1) / Choice(accuracy) / Score(QWK)",
+        out_path=OUT / "radar-final-all-methods.png",
+    )
     yaml_out = OUT / "radar-final-all-methods.yaml"
     yaml_out.write_text(
         yaml.safe_dump(
@@ -363,12 +411,51 @@ def build_radar_chart(rows: list[dict]) -> None:
     print("wrote", yaml_out)
 
 
+def _dataset_scores(g: dict, primitive: str) -> dict[str, float]:
+    run = g.get("radar_run", "eval-summary")
+    model_id = g["radar_model_id"] if "radar_model_id" in g else g.get("single", g.get(primitive))
+    path = ROOT / "results" / run / model_id / f"summary.{primitive}.json"
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    metric = PRIMITIVE_METRIC[primitive]
+    return {r["dataset"]: r[metric] for r in rows}
+
+
+def build_per_primitive_radars(rows: list[dict]) -> None:
+    """One radar per primitive: axes = datasets common to all 9 methods
+    within that primitive, series = the methods, values = the primitive's
+    own metric (F1/accuracy/QWK) per dataset."""
+    method_to_group = {g["method"]: g for g in GROUPS}
+    titles = {"noul": "Noul詳細比較", "choice": "Choice詳細比較", "score": "Score詳細比較"}
+    subtitles = {
+        "noul": "データセット別F1(全手法共通14件)",
+        "choice": "データセット別accuracy(全手法共通9件)",
+        "score": "データセット別normalized QWK(全手法共通7件)",
+    }
+    for primitive in ("noul", "choice", "score"):
+        axes = PRIMITIVE_DATASETS[primitive]
+        axis_labels = [DATASET_LABELS.get(a, a) for a in axes]
+        series = []
+        for i, row in enumerate(rows):
+            group = method_to_group[row["method"]]
+            scores = _dataset_scores(group, primitive)
+            series.append({
+                "name": _legend_name(row), "color": COLORS[i % len(COLORS)],
+                "values": [scores[a] for a in axes],
+            })
+        label_fontsize = 11 if len(axes) <= 9 else 9.5
+        _render_radar(
+            series, axis_labels, title=titles[primitive], subtitle=subtitles[primitive],
+            out_path=OUT / f"radar-{primitive}-detail.png", label_fontsize=label_fontsize,
+        )
+
+
 def main() -> None:
     rows = build_table()
     build_ranking_chart(rows)
     build_primitive_chart(rows)
     build_scatter_and_latency_charts(rows)
     build_radar_chart(rows)
+    build_per_primitive_radars(rows)
 
 
 if __name__ == "__main__":
