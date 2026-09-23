@@ -19,6 +19,8 @@ class NLICrossEncoderScorer:
         self,
         model_name: str = "AlexWortega/openjev",
         *,
+        subfolder: str | None = None,
+        trust_remote_code: bool = False,
         template: str = "ja",
         device: str = "cuda",
         dtype: str = "bfloat16",
@@ -39,13 +41,19 @@ class NLICrossEncoderScorer:
         self.device = device
         self.dtype = dtype
         self.max_length = max_length
-        self.config = AutoConfig.from_pretrained(model_name)
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.subfolder = subfolder
+        # Some jev-like repos (e.g. AlexWortega/openjev) hold several
+        # checkpoints as subfolders of one repo, with custom modeling code.
+        kwargs: dict = {"trust_remote_code": trust_remote_code}
+        if subfolder:
+            kwargs["subfolder"] = subfolder
+        self.config = AutoConfig.from_pretrained(model_name, **kwargs)
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, **kwargs)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = (
             AutoModelForSequenceClassification.from_pretrained(
-                model_name, dtype=getattr(torch, dtype)
+                model_name, dtype=getattr(torch, dtype), **kwargs
             )
             .to(device)
             .eval()
@@ -102,6 +110,7 @@ class NLICrossEncoderScorer:
         return {
             "scorer": self.name,
             "model": self.model_id,
+            "subfolder": self.subfolder,
             "template": self.template,
             "template_language": self.template_name,
             "dtype": self.dtype,

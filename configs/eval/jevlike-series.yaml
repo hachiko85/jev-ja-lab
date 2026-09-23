@@ -1,0 +1,988 @@
+version: 1
+runtime:
+  run_name: eval-jevlike-series
+  smoke_run_name: eval-jevlike-series-smoke
+  resume: true
+  seed: 42
+  models_root: models
+  datasets_root: datasets
+  output_root: results
+  devices:
+  - cuda:0
+  parallelism: 1
+  batch_size: 1
+  worker_timeout_seconds: 86400
+workflow:
+  order:
+  - noul
+  - choice
+  - score
+  - summary
+tasks:
+  noul:
+    enabled: true
+    datasets:
+    - jnli_entailment
+    - jnli_contradiction
+    - jnli_missing_evidence
+    - janli_entailment
+    - jcola_in_domain
+    - jcola_out_of_domain
+    - paws_x_ja
+    - textdetox_ja
+    - jad_afc_true
+    - jad_afc_false
+    - jad_afc_nei
+    - wrime_joy_binary
+    - wrime_anger_binary
+    - wrime_positive_binary
+    aggregate_metric: f1
+    smoke_limit: 5
+    chart:
+      enabled: true
+      name: radar-jevlike-noul
+      title: Noul evaluation
+      subtitle: Binary decision F1
+      metric: f1
+      theme: dark
+      language: ja
+    model_ids:
+    - jevlike-ruri130m-noul
+  choice:
+    enabled: true
+    datasets:
+    - mmmlu_ja
+    - jmmlu
+    - jgpqa_diamond
+    - jcommonsenseqa
+    - xwinograd_ja
+    - mgsm_ja
+    - gsm8k_ja_mc4
+    - gsm8k_ja_mc10
+    - jnli
+    aggregate_metric: accuracy
+    smoke_limit: 5
+    chart:
+      enabled: true
+      name: radar-jevlike-choice
+      title: Choice evaluation
+      subtitle: Top-1 accuracy
+      metric: accuracy
+      theme: dark
+      language: ja
+    model_ids:
+    - jevlike-ruri130m-choice
+  score:
+    enabled: true
+    datasets:
+    - wrime_joy
+    - wrime_anger
+    - wrime_sentiment
+    - synthetic_urgency
+    - synthetic_dissatisfaction
+    - synthetic_risk
+    - synthetic_relevance
+    aggregate_metric: normalized_quadratic_weighted_kappa
+    smoke_limit: 5
+    chart:
+      enabled: true
+      name: radar-jevlike-score
+      title: Score evaluation
+      subtitle: Normalized quadratic weighted kappa
+      metric: normalized_quadratic_weighted_kappa
+      theme: dark
+      language: ja
+    model_ids:
+    - jevlike-ruri130m-score
+  summary:
+    enabled: true
+    weights:
+      noul: 1.0
+      choice: 1.0
+      score: 1.0
+    chart:
+      enabled: true
+      name: radar-jevlike-summary
+      title: Overall Primitive evaluation
+      subtitle: Noul, Choice, Score and equal-weight overall score
+      theme: dark
+      language: ja
+models:
+- id: jevlike-ruri130m-noul
+  label: jevlike (ruri-v3-130m frozen encoder, noul)
+  scorer: jevlike
+  checkpoint_path: results/jevlike_heads/ruri-130m/noul.pt
+  color: '#edc948'
+- id: jevlike-ruri130m-choice
+  label: jevlike (ruri-v3-130m frozen encoder, choice)
+  scorer: jevlike
+  checkpoint_path: results/jevlike_heads/ruri-130m/choice.pt
+  color: '#b07aa1'
+- id: jevlike-ruri130m-score
+  label: jevlike (ruri-v3-130m frozen encoder, score)
+  scorer: jevlike
+  checkpoint_path: results/jevlike_heads/ruri-130m/score.pt
+  color: '#76b7b2'
+datasets:
+- id: mmmlu_ja
+  task: choice
+  label: MMMLU JA-JP
+  feature: 一般・学術知識
+  expected_items: 14042
+  revision: 325a01dc3e173cac1578df94120499aaca2e2504
+  source:
+    format: arrow
+    path: openai___mmmlu/JA_JP/0.0.0/*/mmmlu-test.arrow
+    adapter_dataset: mmmlu_ja
+- id: jmmlu
+  task: choice
+  label: JMMLU
+  feature: 日本語・日本固有知識
+  expected_items: 7536
+  revision: 3637b25e444ccfdcde4d23a783cbe8e674faa01b
+  source:
+    format: jmmlu_zip
+    path: datasets--nlp-waseda--JMMLU/snapshots/*/JMMLU.zip
+    adapter_dataset: jmmlu
+- id: jgpqa_diamond
+  task: choice
+  label: JGPQA Diamond
+  feature: 高難度科学推論
+  expected_items: 198
+  source:
+    format: csv
+    path: datasets--llm-jp--jgpqa/snapshots/*/gpqa_diamond.csv
+    adapter_dataset: jgpqa_diamond
+- id: jcommonsenseqa
+  task: choice
+  label: JCommonsenseQA
+  feature: 日本語常識推論
+  expected_items: 1119
+  revision: b72d3115609bed00c386701fcb40234a1fd08c7a
+  source:
+    format: arrow
+    path: sbintuitions___j_commonsense_qa/default/0.0.0/*/j_commonsense_qa-validation.arrow
+    adapter_dataset: jcommonsenseqa
+- id: xwinograd_ja
+  task: choice
+  label: XWinograd JA
+  feature: 文脈・照応解析
+  expected_items: 959
+  revision: 90b619ef5278605cd4f572e3e8506ab16afd44f2
+  source:
+    format: arrow
+    path: Muennighoff___xwinograd/jp/0.0.0/*/xwinograd-test.arrow
+    adapter_dataset: xwinograd_ja
+- id: mgsm_ja
+  task: choice
+  label: MGSM JA
+  feature: 日本語数学推論
+  expected_items: 250
+  revision: bd4f2be4127dc3d568a7a1ab13a07ceb921afff3
+  source:
+    format: arrow
+    path: jbross-ibm-research___mgsm/ja/0.0.0/*/mgsm-test.arrow
+    adapter_dataset: mgsm_ja
+- id: gsm8k_ja_mc4
+  task: choice
+  label: GSM8K JA MC4
+  feature: 数値推論・4択
+  expected_items: 1069
+  revision: 964859c892f49b8ec5b4b6dd2401169739c7458d
+  source:
+    format: arrow
+    path: SakanaAI___gsm8k-ja-test_250-1319/default/0.0.0/*/gsm8k-ja-test_250-1319-test.arrow
+    adapter_dataset: gsm8k_ja_mc4
+- id: gsm8k_ja_mc10
+  task: choice
+  label: GSM8K JA MC10
+  feature: 数値推論・10択
+  expected_items: 1069
+  revision: 964859c892f49b8ec5b4b6dd2401169739c7458d
+  source:
+    format: arrow
+    path: SakanaAI___gsm8k-ja-test_250-1319/default/0.0.0/*/gsm8k-ja-test_250-1319-test.arrow
+    adapter_dataset: gsm8k_ja_mc10
+- id: jnli
+  task: choice
+  label: JNLI 3-class
+  feature: 日本語NLI・意味理解
+  expected_items: 2434
+  revision: v1.1.0
+  source:
+    format: jsonl
+    path: JGLUE-v1.1.0/datasets/jnli-v1.1/valid-v1.1.json
+    adapter_dataset: jnli
+- id: jnli_entailment
+  task: noul
+  label: JNLI Entailment
+  feature: 含意判定
+  expected_items: 2434
+  revision: v1.1.0
+  source:
+    format: jsonl
+    path: JGLUE-v1.1.0/datasets/jnli-v1.1/valid-v1.1.json
+    adapter: jnli_noul
+    target: entailment
+    adapter_dataset: jnli
+- id: jnli_contradiction
+  task: noul
+  label: JNLI Contradiction
+  feature: 矛盾検出
+  expected_items: 2434
+  revision: v1.1.0
+  source:
+    format: jsonl
+    path: JGLUE-v1.1.0/datasets/jnli-v1.1/valid-v1.1.json
+    adapter: jnli_noul
+    target: contradiction
+    adapter_dataset: jnli
+- id: jnli_missing_evidence
+  task: noul
+  label: JNLI Missing Evidence
+  feature: 情報不足検出
+  expected_items: 2434
+  revision: v1.1.0
+  source:
+    format: jsonl
+    path: JGLUE-v1.1.0/datasets/jnli-v1.1/valid-v1.1.json
+    adapter: jnli_noul
+    target: neutral
+    adapter_dataset: jnli
+- id: wrime_joy
+  task: score
+  label: WRIME Joy
+  feature: 喜び強度・4段階
+  expected_items: 2500
+  revision: ac92deaff7845f31fdd46ef5d893300887006d13
+  source:
+    format: tsv
+    path: wrime-official/wrime-ver2.tsv
+    adapter: score
+    question_field: Sentence
+    gold_field: Avg. Readers_Joy
+    criteria:
+    - 喜びなし
+    - 弱い喜び
+    - 中程度の喜び
+    - 強い喜び
+    prompt: 次の文章から読み手が感じる喜びの強度を評価してください。
+    where:
+      Train/Dev/Test: test
+    adapter_dataset: wrime
+- id: wrime_anger
+  task: score
+  label: WRIME Anger
+  feature: 怒り強度・4段階
+  expected_items: 2500
+  revision: ac92deaff7845f31fdd46ef5d893300887006d13
+  source:
+    format: tsv
+    path: wrime-official/wrime-ver2.tsv
+    adapter: score
+    question_field: Sentence
+    gold_field: Avg. Readers_Anger
+    criteria:
+    - 怒りなし
+    - 弱い怒り
+    - 中程度の怒り
+    - 強い怒り
+    prompt: 次の文章から読み手が感じる怒りの強度を評価してください。
+    where:
+      Train/Dev/Test: test
+    adapter_dataset: wrime
+- id: wrime_sentiment
+  task: score
+  label: WRIME Sentiment
+  feature: 感情極性・5段階
+  expected_items: 2500
+  revision: ac92deaff7845f31fdd46ef5d893300887006d13
+  source:
+    format: tsv
+    path: wrime-official/wrime-ver2.tsv
+    adapter: score
+    question_field: Sentence
+    gold_field: Avg. Readers_Sentiment
+    gold_offset: 2
+    criteria:
+    - 強いネガティブ
+    - ネガティブ
+    - ニュートラル
+    - ポジティブ
+    - 強いポジティブ
+    prompt: 次の文章から読み手が感じる感情極性を評価してください。
+    where:
+      Train/Dev/Test: test
+    adapter_dataset: wrime
+- id: janli_entailment
+  task: noul
+  label: JaNLI Entailment
+  feature: 敵対的日本語NLI
+  expected_items: 720
+  revision: b91923216e61ded52ec77316cb329b47227e4955
+  source:
+    format: parquet
+    path: openjev-extra/janli/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: label
+    positive_values:
+    - 0
+    question_template: '前提: {premise}
+
+      仮説: {hypothesis}
+
+      仮説は前提から支持されますか？'
+    hub_source:
+      repo_id: hachiko85/jev-ja-lab-eval
+      filename: janli/data.parquet
+      revision: 301bb7ae5d82203531757c4cfa06204d4a7be61a
+- id: jcola_in_domain
+  task: noul
+  label: JCoLA In-domain
+  feature: 日本語文法・既知領域
+  expected_items: 865
+  revision: 736d9eef3af04bb17e4cf59adf01325973234ff9
+  source:
+    format: tsv
+    path: openjev-extra/jcola/data/jcola-v1.0/in_domain_valid-v1.0.tsv
+    adapter: noul
+    item_id_field: uid
+    gold_field: label
+    positive_values:
+    - 1
+    question_template: '次の文章は日本語として文法的に成立しますか？
+
+      文章: {sentence}'
+    hub_source:
+      repo_id: hachiko85/jev-ja-lab-eval
+      filename: jcola/data/jcola-v1.0/in_domain_valid-v1.0.tsv
+      revision: 301bb7ae5d82203531757c4cfa06204d4a7be61a
+- id: jcola_out_of_domain
+  task: noul
+  label: JCoLA Out-of-domain
+  feature: 日本語文法・未知領域
+  expected_items: 685
+  revision: 736d9eef3af04bb17e4cf59adf01325973234ff9
+  source:
+    format: tsv
+    path: openjev-extra/jcola/data/jcola-v1.0/out_of_domain_valid-v1.0.tsv
+    adapter: noul
+    item_id_field: uid
+    gold_field: label
+    positive_values:
+    - 1
+    question_template: '次の文章は日本語として文法的に成立しますか？
+
+      文章: {sentence}'
+    hub_source:
+      repo_id: hachiko85/jev-ja-lab-eval
+      filename: jcola/data/jcola-v1.0/out_of_domain_valid-v1.0.tsv
+      revision: 301bb7ae5d82203531757c4cfa06204d4a7be61a
+- id: paws_x_ja
+  task: noul
+  label: PAWS-X Japanese
+  feature: 言い換え・意味的一致
+  expected_items: 2000
+  revision: 4cd8187c404bda33cb1f62b49b001115862acf37
+  source:
+    format: parquet
+    path: openjev-extra/paws_x_ja/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: label
+    positive_values:
+    - 1
+    question_template: '次の2文は同じ意味ですか？
+
+      文1: {sentence1}
+
+      文2: {sentence2}'
+    repo_id: google-research-datasets/paws-x
+    config: ja
+    split: test
+- id: jsfact_supported
+  task: noul
+  label: JSFactCheckBench Supported
+  feature: 根拠による支持
+  expected_items: 1738
+  revision: 100f4c60379fad2828a1ee763c79354210078789
+  source:
+    format: parquet
+    path: openjev-extra/jsfactcheckbench/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: factuality
+    positive_values:
+    - Supported
+    where_in:
+      factuality:
+      - Supported
+      - Refuted
+      - NotEnoughInfo
+    max_chars: 4000
+    question_template: '主張と根拠を確認し、根拠が主張を支持するか判定してください。
+
+      主張: {claim}
+
+      根拠: {evidence}'
+- id: jsfact_refuted
+  task: noul
+  label: JSFactCheckBench Refuted
+  feature: 根拠による反証
+  expected_items: 1738
+  revision: 100f4c60379fad2828a1ee763c79354210078789
+  source:
+    format: parquet
+    path: openjev-extra/jsfactcheckbench/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: factuality
+    positive_values:
+    - Refuted
+    where_in:
+      factuality:
+      - Supported
+      - Refuted
+      - NotEnoughInfo
+    max_chars: 4000
+    question_template: '主張と根拠を確認し、根拠が主張を否定するか判定してください。
+
+      主張: {claim}
+
+      根拠: {evidence}'
+- id: jsfact_nei
+  task: noul
+  label: JSFactCheckBench NEI
+  feature: 根拠情報不足
+  expected_items: 1738
+  revision: 100f4c60379fad2828a1ee763c79354210078789
+  source:
+    format: parquet
+    path: openjev-extra/jsfactcheckbench/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: factuality
+    positive_values:
+    - NotEnoughInfo
+    where_in:
+      factuality:
+      - Supported
+      - Refuted
+      - NotEnoughInfo
+    max_chars: 4000
+    question_template: '主張を判定する根拠情報が不足していますか？
+
+      主張: {claim}
+
+      根拠: {evidence}'
+- id: llmjp_toxicity
+  task: noul
+  label: LLM-jp Toxicity
+  feature: 日本語総合有害性
+  expected_items: 1847
+  revision: cc461b3a088cafda1d03a64b71b1efb6b072b5ba
+  source:
+    format: parquet
+    path: openjev-extra/llmjp_toxicity/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: label
+    positive_values:
+    - toxic
+    max_chars: 4000
+    question_template: '次の文章は有害ですか？
+
+      文章: {text}'
+- id: llmjp_obscene
+  task: noul
+  label: LLM-jp Obscene
+  feature: 猥褻表現
+  expected_items: 1847
+  revision: cc461b3a088cafda1d03a64b71b1efb6b072b5ba
+  source:
+    format: parquet
+    path: openjev-extra/llmjp_toxicity/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: obscene
+    positive_values: &id001
+    - true
+    max_chars: 4000
+    question_template: '次の文章は猥褻表現を含みますか？
+
+      文章: {text}'
+- id: llmjp_discriminatory
+  task: noul
+  label: LLM-jp Discriminatory
+  feature: 差別表現
+  expected_items: 1847
+  revision: cc461b3a088cafda1d03a64b71b1efb6b072b5ba
+  source:
+    format: parquet
+    path: openjev-extra/llmjp_toxicity/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: discriminatory
+    positive_values: *id001
+    max_chars: 4000
+    question_template: '次の文章は差別表現を含みますか？
+
+      文章: {text}'
+- id: llmjp_violent
+  task: noul
+  label: LLM-jp Violent
+  feature: 暴力表現
+  expected_items: 1847
+  revision: cc461b3a088cafda1d03a64b71b1efb6b072b5ba
+  source:
+    format: parquet
+    path: openjev-extra/llmjp_toxicity/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: violent
+    positive_values: *id001
+    max_chars: 4000
+    question_template: '次の文章は暴力表現を含みますか？
+
+      文章: {text}'
+- id: llmjp_illegal
+  task: noul
+  label: LLM-jp Illegal
+  feature: 違法行為表現
+  expected_items: 1847
+  revision: cc461b3a088cafda1d03a64b71b1efb6b072b5ba
+  source:
+    format: parquet
+    path: openjev-extra/llmjp_toxicity/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: illegal
+    positive_values: *id001
+    max_chars: 4000
+    question_template: '次の文章は違法行為に関する有害表現を含みますか？
+
+      文章: {text}'
+- id: llmjp_personal
+  task: noul
+  label: LLM-jp Personal
+  feature: 個人攻撃
+  expected_items: 1847
+  revision: cc461b3a088cafda1d03a64b71b1efb6b072b5ba
+  source:
+    format: parquet
+    path: openjev-extra/llmjp_toxicity/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: personal
+    positive_values: *id001
+    max_chars: 4000
+    question_template: '次の文章は個人への有害な攻撃を含みますか？
+
+      文章: {text}'
+- id: llmjp_corporate
+  task: noul
+  label: LLM-jp Corporate
+  feature: 組織攻撃
+  expected_items: 1847
+  revision: cc461b3a088cafda1d03a64b71b1efb6b072b5ba
+  source:
+    format: parquet
+    path: openjev-extra/llmjp_toxicity/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: corporate
+    positive_values: *id001
+    max_chars: 4000
+    question_template: '次の文章は組織への有害な攻撃を含みますか？
+
+      文章: {text}'
+- id: llmjp_other_toxicity
+  task: noul
+  label: LLM-jp Other Toxicity
+  feature: その他有害性
+  expected_items: 1847
+  revision: cc461b3a088cafda1d03a64b71b1efb6b072b5ba
+  source:
+    format: parquet
+    path: openjev-extra/llmjp_toxicity/data.parquet
+    adapter: noul
+    item_id_field: id
+    gold_field: others
+    positive_values: *id001
+    max_chars: 4000
+    question_template: '次の文章はその他の有害表現を含みますか？
+
+      文章: {text}'
+- id: textdetox_ja
+  task: noul
+  label: TextDetox Japanese
+  feature: 日本語Toxicity
+  expected_items: 5000
+  revision: 01907546324b0330d2d8b7669648cc18823323e5
+  source:
+    format: parquet
+    path: openjev-extra/textdetox_ja/data.parquet
+    adapter: noul
+    gold_field: toxic
+    positive_values:
+    - 1
+    max_chars: 4000
+    question_template: '次の文章は有害ですか？
+
+      文章: {text}'
+    repo_id: textdetox/multilingual_toxicity_dataset
+    split: ja
+- id: jad_afc_true
+  task: noul
+  label: JAD-AFC True
+  feature: 日本語Claim真実性
+  expected_items: 612
+  revision: c2a84f80dd64f28122a4c8d4bd2aeab558355921
+  source:
+    format: csv
+    path: openjev-extra/jad-afc/data/japanese-dataset-for-automated-fact-checking.csv
+    adapter: noul
+    item_id_field: 項番
+    gold_field: 真実性ラベル
+    positive_values:
+    - true
+    max_chars: 4000
+    question_template: 'クレームは根拠に照らして正しいですか？
+
+      クレーム: {クレーム}
+
+      根拠: {証拠説明文}'
+    hub_source:
+      repo_id: hachiko85/jev-ja-lab-eval
+      filename: jad-afc/data/japanese-dataset-for-automated-fact-checking.csv
+      revision: 301bb7ae5d82203531757c4cfa06204d4a7be61a
+- id: jad_afc_false
+  task: noul
+  label: JAD-AFC False
+  feature: 日本語Claim虚偽性
+  expected_items: 612
+  revision: c2a84f80dd64f28122a4c8d4bd2aeab558355921
+  source:
+    format: csv
+    path: openjev-extra/jad-afc/data/japanese-dataset-for-automated-fact-checking.csv
+    adapter: noul
+    item_id_field: 項番
+    gold_field: 真実性ラベル
+    positive_values:
+    - false
+    max_chars: 4000
+    question_template: 'クレームは根拠に照らして誤りですか？
+
+      クレーム: {クレーム}
+
+      根拠: {証拠説明文}'
+    hub_source:
+      repo_id: hachiko85/jev-ja-lab-eval
+      filename: jad-afc/data/japanese-dataset-for-automated-fact-checking.csv
+      revision: 301bb7ae5d82203531757c4cfa06204d4a7be61a
+- id: jad_afc_nei
+  task: noul
+  label: JAD-AFC NEI
+  feature: 日本語Claim情報不足
+  expected_items: 612
+  revision: c2a84f80dd64f28122a4c8d4bd2aeab558355921
+  source:
+    format: csv
+    path: openjev-extra/jad-afc/data/japanese-dataset-for-automated-fact-checking.csv
+    adapter: noul
+    item_id_field: 項番
+    gold_field: 真実性ラベル
+    positive_values:
+    - NEI
+    max_chars: 4000
+    question_template: 'クレームを判定する根拠が不足していますか？
+
+      クレーム: {クレーム}
+
+      根拠: {証拠説明文}'
+    hub_source:
+      repo_id: hachiko85/jev-ja-lab-eval
+      filename: jad-afc/data/japanese-dataset-for-automated-fact-checking.csv
+      revision: 301bb7ae5d82203531757c4cfa06204d4a7be61a
+- id: wrime_joy_binary
+  task: noul
+  label: WRIME Joy Binary
+  feature: 喜び有無
+  expected_items: 2500
+  revision: ac92deaff7845f31fdd46ef5d893300887006d13
+  source:
+    format: tsv
+    path: wrime-official/wrime-ver2.tsv
+    adapter: noul
+    gold_field: Avg. Readers_Joy
+    positive_min: 1
+    question_template: '次の文章から読み手は喜びを感じますか？
+
+      文章: {Sentence}'
+    where:
+      Train/Dev/Test: test
+    adapter_dataset: wrime
+- id: wrime_anger_binary
+  task: noul
+  label: WRIME Anger Binary
+  feature: 怒り有無
+  expected_items: 2500
+  revision: ac92deaff7845f31fdd46ef5d893300887006d13
+  source:
+    format: tsv
+    path: wrime-official/wrime-ver2.tsv
+    adapter: noul
+    gold_field: Avg. Readers_Anger
+    positive_min: 1
+    question_template: '次の文章から読み手は怒りを感じますか？
+
+      文章: {Sentence}'
+    where:
+      Train/Dev/Test: test
+    adapter_dataset: wrime
+- id: wrime_positive_binary
+  task: noul
+  label: WRIME Positive Binary
+  feature: ポジティブ感情有無
+  expected_items: 2500
+  revision: ac92deaff7845f31fdd46ef5d893300887006d13
+  source:
+    format: tsv
+    path: wrime-official/wrime-ver2.tsv
+    adapter: noul
+    gold_field: Avg. Readers_Sentiment
+    positive_min: 1
+    question_template: '次の文章から読み手はポジティブな感情を感じますか？
+
+      文章: {Sentence}'
+    where:
+      Train/Dev/Test: test
+    adapter_dataset: wrime
+- id: helpsteer_correctness
+  task: score
+  label: HelpSteer2 Correctness JA
+  feature: 回答正確性・5段階
+  expected_items: 19958
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    format: parquet
+    path: openjev-extra/helpsteer2_ja/data.parquet
+    adapter: score
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+    gold_field: correctness
+    max_chars: 6000
+    criteria:
+    - 不正確
+    - やや不正確
+    - 一部正確
+    - ほぼ正確
+    - 正確
+    prompt: 次の質問に対する回答の正確性を評価してください。
+- id: helpsteer_helpfulness
+  task: score
+  label: HelpSteer2 Helpfulness JA
+  feature: 回答有用性・5段階
+  expected_items: 19958
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    format: parquet
+    path: openjev-extra/helpsteer2_ja/data.parquet
+    adapter: score
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+    gold_field: helpfulness
+    max_chars: 6000
+    criteria:
+    - 役に立たない
+    - あまり役に立たない
+    - 一部役に立つ
+    - 役に立つ
+    - 非常に役に立つ
+    prompt: 次の質問に対する回答の有用性を評価してください。
+- id: helpsteer_verbosity
+  task: score
+  label: HelpSteer2 Verbosity JA
+  feature: 回答詳細度・5段階
+  expected_items: 19958
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    format: parquet
+    path: openjev-extra/helpsteer2_ja/data.parquet
+    adapter: score
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+    gold_field: verbosity
+    max_chars: 6000
+    criteria:
+    - 非常に簡潔
+    - 簡潔
+    - 適度
+    - 詳細
+    - 非常に詳細
+    prompt: 次の質問に対する回答の詳細度を評価してください。
+- id: helpsteer_complexity
+  task: score
+  label: HelpSteer2 Complexity JA
+  feature: 回答複雑度・5段階
+  expected_items: 19958
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    format: parquet
+    path: openjev-extra/helpsteer2_ja/data.parquet
+    adapter: score
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+    gold_field: complexity
+    max_chars: 6000
+    criteria:
+    - 非常に単純
+    - 単純
+    - 中程度
+    - 複雑
+    - 非常に複雑
+    prompt: 次の質問に対する回答の複雑度を評価してください。
+- id: helpsteer_coherence
+  task: score
+  label: HelpSteer2 Coherence JA
+  feature: 回答一貫性・5段階
+  expected_items: 19958
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    format: parquet
+    path: openjev-extra/helpsteer2_ja/data.parquet
+    adapter: score
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+    gold_field: coherence
+    max_chars: 6000
+    criteria:
+    - 一貫性なし
+    - 一貫性が低い
+    - 一部一貫
+    - ほぼ一貫
+    - 完全に一貫
+    prompt: 次の質問に対する回答の一貫性を評価してください。
+- id: civil_comments_toxicity
+  task: score
+  label: Civil Comments Toxicity
+  feature: 有害度・5段階
+  expected_items: 97320
+  revision: f2970eb3a55777454c94069077cc8d9b5866312d
+  source:
+    format: parquet
+    path: openjev-extra/civil_comments/data.parquet
+    adapter: score
+    question_field: text
+    gold_field: toxicity
+    gold_thresholds:
+    - 0.2
+    - 0.4
+    - 0.6
+    - 0.8
+    max_chars: 4000
+    criteria:
+    - 無害
+    - 低い有害度
+    - 中程度の有害度
+    - 高い有害度
+    - 非常に高い有害度
+    prompt: 次の英語コメントの有害度を評価してください。
+- id: synthetic_urgency
+  task: score
+  label: Synthetic Urgency
+  feature: 緊急度・5段階
+  expected_items: 200
+  revision: deterministic-v1
+  source:
+    format: jsonl
+    path: openjev-extra/synthetic_score/urgency.jsonl
+    adapter: score
+    question_field: state
+    gold_field: gold_score
+    criteria:
+    - 緊急性なし
+    - 低い
+    - 中程度
+    - 高い
+    - 最優先
+    prompt: 次の事例の緊急度を評価してください。
+    hub_source:
+      repo_id: hachiko85/jev-ja-lab-eval
+      filename: synthetic_score/urgency.jsonl
+      revision: 301bb7ae5d82203531757c4cfa06204d4a7be61a
+- id: synthetic_dissatisfaction
+  task: score
+  label: Synthetic Dissatisfaction
+  feature: 不満度・5段階
+  expected_items: 200
+  revision: deterministic-v1
+  source:
+    format: jsonl
+    path: openjev-extra/synthetic_score/dissatisfaction.jsonl
+    adapter: score
+    question_field: state
+    gold_field: gold_score
+    criteria:
+    - 不満なし
+    - 低い
+    - 中程度
+    - 高い
+    - 非常に高い
+    prompt: 次の事例の不満度を評価してください。
+    hub_source:
+      repo_id: hachiko85/jev-ja-lab-eval
+      filename: synthetic_score/dissatisfaction.jsonl
+      revision: 301bb7ae5d82203531757c4cfa06204d4a7be61a
+- id: synthetic_risk
+  task: score
+  label: Synthetic Risk
+  feature: 危険度・5段階
+  expected_items: 200
+  revision: deterministic-v1
+  source:
+    format: jsonl
+    path: openjev-extra/synthetic_score/risk.jsonl
+    adapter: score
+    question_field: state
+    gold_field: gold_score
+    criteria:
+    - 危険なし
+    - 低い
+    - 中程度
+    - 高い
+    - 極めて高い
+    prompt: 次の事例の危険度を評価してください。
+    hub_source:
+      repo_id: hachiko85/jev-ja-lab-eval
+      filename: synthetic_score/risk.jsonl
+      revision: 301bb7ae5d82203531757c4cfa06204d4a7be61a
+- id: synthetic_relevance
+  task: score
+  label: Synthetic Relevance
+  feature: 関連度・5段階
+  expected_items: 200
+  revision: deterministic-v1
+  source:
+    format: jsonl
+    path: openjev-extra/synthetic_score/relevance.jsonl
+    adapter: score
+    question_field: state
+    gold_field: gold_score
+    criteria:
+    - 無関係
+    - 関連が低い
+    - 部分的に関連
+    - 高く関連
+    - 完全に関連
+    prompt: 次の事例の関連度を評価してください。
+    hub_source:
+      repo_id: hachiko85/jev-ja-lab-eval
+      filename: synthetic_score/relevance.jsonl
+      revision: 301bb7ae5d82203531757c4cfa06204d4a7be61a
