@@ -15,7 +15,14 @@ from openjev_ja.common import DatasetUnavailableError
 from openjev_ja.eval.local_data import load_local_benchmark
 from openjev_ja.eval.runner import run_evaluation
 from openjev_ja.methods.bert_masked_lm import MaskedLMScorer
+from openjev_ja.methods.embedding import EmbeddingScorer
+from openjev_ja.methods.jevlike import JevlikeScorer
+from openjev_ja.methods.laya import LayaScorer
+from openjev_ja.methods.laya_bert import LayaBertScorer
 from openjev_ja.methods.next_token_logit import NextTokenLogitScorer
+from openjev_ja.methods.nli_cross_encoder import NLICrossEncoderScorer
+from openjev_ja.methods.semif_logit import SemifLogitScorer
+from openjev_ja.methods.semif_logit_fewshot import SemifLogitFewShotScorer
 from openjev_ja.methods.typesafe_jev import JevScorer
 
 _FETCH_SKIP_EXCEPTIONS = (FileNotFoundError, DatasetUnavailableError, OSError, httpx.HTTPError)
@@ -66,6 +73,78 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
             timeout=float(model.get("timeout", 30.0)),
             max_retries=int(model.get("max_retries", 2)),
         )
+    if scorer_name == "embedding":
+        if not model.get("primitive") or not model.get("head_path"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'embedding' requires 'primitive' and "
+                "'head_path' (a head trained with jev-ja-lab-embedding-train)"
+            )
+        return EmbeddingScorer(
+            _model_reference(model, runtime),
+            primitive=str(model["primitive"]),
+            head_path=str(model["head_path"]),
+            device=device,
+            dtype=str(model.get("dtype", "float32")),
+            revision=model.get("revision"),
+            model_id=str(model.get("model_id") or model.get("repo_id") or model.get("path")),
+            metadata_revision=model.get("metadata_revision"),
+        )
+    if scorer_name == "laya":
+        if not model.get("primitive"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'laya' requires 'primitive'"
+            )
+        return LayaScorer(
+            primitive=str(model["primitive"]),
+            checkpoint=str(model.get("checkpoint", "multilingual")),
+            device=None if device == "auto" else device,
+        )
+    if scorer_name == "jevlike":
+        if not model.get("checkpoint_path"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'jevlike' requires 'checkpoint_path' "
+                "(a checkpoint trained with jev-ja-lab-jevlike-train)"
+            )
+        return JevlikeScorer(str(model["checkpoint_path"]), device=device)
+    if scorer_name == "laya-bert":
+        if not model.get("primitive") or not model.get("head_path"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'laya-bert' requires 'primitive' and "
+                "'head_path' (a head trained with jev-ja-lab-laya-bert-train)"
+            )
+        return LayaBertScorer(
+            _model_reference(model, runtime),
+            primitive=str(model["primitive"]),
+            head_path=str(model["head_path"]),
+            device=device,
+            model_id=str(model.get("model_id") or model.get("repo_id") or model.get("path")),
+        )
+    if scorer_name == "nli-cross-encoder":
+        return NLICrossEncoderScorer(
+            _model_reference(model, runtime),
+            subfolder=model.get("subfolder"),
+            trust_remote_code=bool(model.get("trust_remote_code", False)),
+            template=str(model.get("template", "ja")),
+            device=device,
+            dtype=str(model.get("dtype", "bfloat16")),
+            max_length=int(model.get("max_length", 1024)),
+        )
+    if scorer_name == "semif-logit-fewshot":
+        if not model.get("primitive"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'semif-logit-fewshot' requires 'primitive'"
+            )
+        return SemifLogitFewShotScorer(
+            _model_reference(model, runtime),
+            primitive=str(model["primitive"]),
+            datasets_root=str(runtime["datasets_root"]),
+            few_shot_count=int(model.get("few_shot_count", 2)),
+            device=device,
+            dtype=str(model.get("dtype", "bfloat16")),
+            revision=model.get("revision"),
+            model_id=str(model.get("model_id") or model.get("repo_id") or model.get("path")),
+            metadata_revision=model.get("metadata_revision"),
+        )
     model_path = _model_reference(model, runtime)
     if scorer_name in (None, "auto"):
         # No explicit scorer: pick NextTokenLogitScorer (causal / image-text-to-text)
@@ -76,6 +155,8 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
         scorer_cls = NextTokenLogitScorer
     elif scorer_name == "masked-lm":
         scorer_cls = MaskedLMScorer
+    elif scorer_name == "semif-logit":
+        scorer_cls = SemifLogitScorer
     else:
         raise OrchestrationError(f"unsupported scorer: {scorer_name}")
     return scorer_cls(

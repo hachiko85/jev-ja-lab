@@ -32,6 +32,12 @@ orchestrate = [
   "pyarrow>=18",
   "PyYAML>=6.0",
 ]
+laya = [
+  "laya>=0.3.5",
+]
+jevlike = [
+  "jevlike[transformers] @ git+https://github.com/vinnylarouge/jevlike.git",
+]
 dev = [
   "pytest>=8.3",
   "ruff>=0.11",
@@ -46,16 +52,31 @@ jev-ja-lab-eval-choice = "openjev_ja.eval.eval_choice:main"
 jev-ja-lab-eval-score = "openjev_ja.eval.eval_score:main"
 jev-ja-lab-eval-summary = "openjev_ja.eval.eval_summary:main"
 jev-ja-lab-eval-workflow = "openjev_ja.eval.workflow:main"
+jev-ja-lab-embedding-train = "openjev_ja.methods.embedding.train:main"
+jev-ja-lab-jevlike-train = "openjev_ja.methods.jevlike.train:main"
+jev-ja-lab-laya-bert-train = "openjev_ja.methods.laya_bert.train:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/openjev_ja"]
 
+[tool.hatch.metadata]
+allow-direct-references = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-m \"not integration and not gpu\""
 markers = [
   "integration: requires network access or external credentials",
   "gpu: requires a local model and accelerator",
 ]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
 
 [tool.ruff]
 target-version = "py311"

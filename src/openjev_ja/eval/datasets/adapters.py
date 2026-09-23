@@ -53,10 +53,16 @@ def _answer_index(value: Any, options: list[str]) -> int:
         return _LABELS.index(upper)
     if text.isdigit():
         number = int(text)
-        if 0 <= number < len(options):
-            return number
+        # 1-indexed first: with a 2-option dataset, "1" is ambiguous between
+        # "index 1" and "option 1" (0 <= 1 < 2 is also true), and every
+        # numeric-answer source seen so far (xwinograd_ja: "1"/"2") is
+        # 1-indexed, so that reading must win the ambiguous case. Plain
+        # 0-indexed values only fall through here for 0, which "1 <= 0"
+        # already excludes.
         if 1 <= number <= len(options):
             return number - 1
+        if 0 <= number < len(options):
+            return number
     try:
         return options.index(text)
     except ValueError as exc:
@@ -128,10 +134,13 @@ def convert_row(name: str, row: Mapping[str, Any], index: int, seed: int = 42) -
         question, gold = str(row["question"]).strip(), _answer_index(row["answer"], options)
         metadata["subject"] = row.get("subject")
     elif name == "jgpqa_diamond":
-        options = [str(row["Correct Answer"]).strip()] + [
+        correct = str(row["Correct Answer"]).strip()
+        options = [correct] + [
             str(row[f"Incorrect Answer {i}"]).strip() for i in range(1, 4)
         ]
-        question, gold = str(row["Question"]).strip(), 0
+        digest = hashlib.sha256(f"{seed}:{item_id}".encode()).digest()
+        random.Random(int.from_bytes(digest[:8], "big")).shuffle(options)
+        question, gold = str(row["Question"]).strip(), options.index(correct)
     elif name == "jcommonsenseqa":
         options = [str(row[f"choice{i}"]).strip() for i in range(5)]
         question, gold = str(row["question"]).strip(), int(row["label"])

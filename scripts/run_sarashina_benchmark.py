@@ -5,8 +5,8 @@ from pathlib import Path
 
 import yaml
 
+from openjev_ja.aggregate.summary import build_evaluation_summary
 from openjev_ja.eval.orchestrate import run_orchestration
-from openjev_ja.eval.summary import build_evaluation_summary
 
 MODELS = [
     {
