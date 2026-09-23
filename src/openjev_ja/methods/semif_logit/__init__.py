@@ -14,11 +14,19 @@ construction and verification instead of this project's own:
   generic image-text-to-text wrapper `next_token_logit` uses
 - a `prompt_sha256` recorded per score, for audit/reproducibility
 
-`methods.next_token_logit` is left unchanged; this is a separate method,
-not a replacement. SemIf itself is not vendored as a dependency (it pins
-`torch==2.10.0`, which would conflict with this project's CUDA torch
-build) — its recipe is reproduced in code instead. See
-manifests/upstream.yaml.
+`methods.next_token_logit` (independent Japanese-natural-language prompt,
+reported separately as "semif-ja" alongside this method) is left
+unchanged; this is a separate method, not a replacement. SemIf itself is
+not vendored as a dependency (it pins `torch==2.10.0`, which would
+conflict with this project's CUDA torch build) — its recipe is reproduced
+in code instead. See manifests/upstream.yaml.
+
+Zero-shot and few-shot are both this same method (`SemifLogitScorer`),
+selected via the `few_shot_count` constructor argument — see its
+docstring. They used to be two separate classes/packages
+(`methods.semif_logit` / `methods.semif_logit_fewshot`); merged here since
+few-shot is just an optional mode of the same prompt recipe, not a
+different decision principle.
 """
 
 from .scorer import SemifLogitScorer

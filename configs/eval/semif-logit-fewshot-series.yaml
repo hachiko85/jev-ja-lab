@@ -112,7 +112,7 @@ models:
   label: Qwen3.5-4B (SemIf recipe, 2-shot)
   repo_id: Qwen/Qwen3.5-4B
   revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
-  scorer: semif-logit-fewshot
+  scorer: semif-logit
   primitive: noul
   few_shot_count: 2
   dtype: bfloat16
@@ -122,7 +122,7 @@ models:
   label: Qwen3.5-4B (SemIf recipe, 2-shot)
   repo_id: Qwen/Qwen3.5-4B
   revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
-  scorer: semif-logit-fewshot
+  scorer: semif-logit
   primitive: choice
   few_shot_count: 2
   dtype: bfloat16
@@ -132,7 +132,7 @@ models:
   label: Qwen3.5-4B (SemIf recipe, 2-shot)
   repo_id: Qwen/Qwen3.5-4B
   revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
-  scorer: semif-logit-fewshot
+  scorer: semif-logit
   primitive: score
   few_shot_count: 2
   dtype: bfloat16

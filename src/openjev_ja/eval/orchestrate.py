@@ -22,7 +22,6 @@ from openjev_ja.methods.laya_bert import LayaBertScorer
 from openjev_ja.methods.next_token_logit import NextTokenLogitScorer
 from openjev_ja.methods.nli_cross_encoder import NLICrossEncoderScorer
 from openjev_ja.methods.semif_logit import SemifLogitScorer
-from openjev_ja.methods.semif_logit_fewshot import SemifLogitFewShotScorer
 from openjev_ja.methods.typesafe_jev import JevScorer
 
 _FETCH_SKIP_EXCEPTIONS = (FileNotFoundError, DatasetUnavailableError, OSError, httpx.HTTPError)
@@ -129,21 +128,27 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
             dtype=str(model.get("dtype", "bfloat16")),
             max_length=int(model.get("max_length", 1024)),
         )
-    if scorer_name == "semif-logit-fewshot":
-        if not model.get("primitive"):
-            raise OrchestrationError(
-                f"model {model.get('id')!r}: scorer 'semif-logit-fewshot' requires 'primitive'"
-            )
-        return SemifLogitFewShotScorer(
+    if scorer_name == "semif-logit":
+        few_shot_count = int(model.get("few_shot_count", 0))
+        few_shot_kwargs: dict[str, Any] = {}
+        if few_shot_count:
+            if not model.get("primitive"):
+                raise OrchestrationError(
+                    f"model {model.get('id')!r}: 'few_shot_count' requires 'primitive'"
+                )
+            few_shot_kwargs = {
+                "primitive": str(model["primitive"]),
+                "datasets_root": str(runtime["datasets_root"]),
+                "few_shot_count": few_shot_count,
+            }
+        return SemifLogitScorer(
             _model_reference(model, runtime),
-            primitive=str(model["primitive"]),
-            datasets_root=str(runtime["datasets_root"]),
-            few_shot_count=int(model.get("few_shot_count", 2)),
             device=device,
             dtype=str(model.get("dtype", "bfloat16")),
             revision=model.get("revision"),
             model_id=str(model.get("model_id") or model.get("repo_id") or model.get("path")),
             metadata_revision=model.get("metadata_revision"),
+            **few_shot_kwargs,
         )
     model_path = _model_reference(model, runtime)
     if scorer_name in (None, "auto"):
@@ -155,8 +160,6 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
         scorer_cls = NextTokenLogitScorer
     elif scorer_name == "masked-lm":
         scorer_cls = MaskedLMScorer
-    elif scorer_name == "semif-logit":
-        scorer_cls = SemifLogitScorer
     else:
         raise OrchestrationError(f"unsupported scorer: {scorer_name}")
     return scorer_cls(

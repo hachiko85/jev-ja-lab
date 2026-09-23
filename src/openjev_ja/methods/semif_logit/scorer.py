@@ -55,6 +55,15 @@ class SemifLogitScorer:
 
     See package docstring for exactly what differs from
     `methods.next_token_logit.NextTokenLogitScorer`.
+
+    Zero-shot by default. Pass `few_shot` directly for caller-supplied
+    in-context examples, or `few_shot_count` (+ `primitive`/`datasets_root`)
+    to have this class load them itself via `methods.semif_logit.examples`
+    (the project's own train-split datasets, same source every from-scratch
+    method's head trains on). Adding examples changes results (+5 to +10
+    points depending on primitive on a 300-item check), so treat a
+    zero-shot run and a few-shot run as different configurations of the
+    same method, not interchangeable numbers.
     """
 
     name = "semif-logit"
@@ -70,12 +79,26 @@ class SemifLogitScorer:
         metadata_revision: str | None = None,
         max_tokens: int = 4096,
         few_shot: list[FewShotExample] | None = None,
+        primitive: str | None = None,
+        datasets_root: str | None = None,
+        few_shot_count: int = 0,
+        few_shot_seed: int = 42,
     ) -> None:
         try:
             import torch
             from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
         except ImportError as exc:
             raise RuntimeError("Install evaluation dependencies: pip install -e '.[eval]'") from exc
+        if few_shot is not None and few_shot_count:
+            raise ValueError("pass either few_shot or few_shot_count, not both")
+        if few_shot_count:
+            if primitive is None or datasets_root is None:
+                raise ValueError("few_shot_count requires primitive and datasets_root")
+            from openjev_ja.methods.semif_logit.examples import load_few_shot_examples
+
+            few_shot = load_few_shot_examples(
+                primitive, datasets_root, few_shot_count, seed=few_shot_seed
+            )
         self._torch = torch
         self.model_name = model_name
         self.model_id = model_id or (
@@ -87,6 +110,7 @@ class SemifLogitScorer:
         self.metadata_revision = metadata_revision
         self.max_tokens = max_tokens
         self.few_shot: list[FewShotExample] = list(few_shot or [])
+        self.primitive = primitive
         kwargs: dict[str, Any] = {"revision": revision} if revision else {}
         self.tokenizer = AutoTokenizer.from_pretrained(model_name, **kwargs)
         torch_dtype = getattr(torch, dtype)
@@ -195,5 +219,6 @@ class SemifLogitScorer:
             "prompt_style": "chat-template + json-structured (SemIf recipe)",
             "system_prompt": DIRECT_SYSTEM,
             "few_shot_count": len(self.few_shot),
+            "primitive": self.primitive,
             "generation": False,
         }
