@@ -26,6 +26,7 @@ viz = [
   "pandas>=2.2",
   "pyarrow>=18",
   "PyYAML>=6.0",
+  "qrcode[pil]>=8.0",
 ]
 orchestrate = [
   "matplotlib>=3.10",
