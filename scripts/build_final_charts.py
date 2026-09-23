@@ -164,7 +164,7 @@ def build_ranking_chart(rows: list[dict]) -> None:
     fig.suptitle("手法別ランキング", fontsize=17, fontweight="bold", color=TEXT, y=0.97)
     fig.text(0.5, 0.925, "3primitive(Noul/Choice/Score)の等加重平均、降順",
               ha="center", color=MUTED, fontsize=9)
-    fig.subplots_adjust(top=0.88, bottom=0.11, left=0.30, right=0.95)
+    fig.subplots_adjust(top=0.88, bottom=0.11, left=0.19, right=0.95)
     draw_footer(fig)
     out = OUT / "ranking-bar-chart.png"
     fig.savefig(out, dpi=180, facecolor=FIG_BG)
@@ -279,7 +279,7 @@ def build_scatter_and_latency_charts(rows: list[dict]) -> None:
     fig.suptitle("手法別 平均推論時間", fontsize=17, fontweight="bold", color=TEXT, y=0.97)
     fig.text(0.5, 0.925, "全データセット件数加重平均。Jevはネットワーク往復込み(API)、他はGPU",
               ha="center", color=MUTED, fontsize=9)
-    fig.subplots_adjust(top=0.88, bottom=0.10, left=0.34, right=0.95)
+    fig.subplots_adjust(top=0.88, bottom=0.10, left=0.22, right=0.95)
     draw_footer(fig)
     out2 = OUT / "latency-bar-chart.png"
     fig.savefig(out2, dpi=180, facecolor=FIG_BG)

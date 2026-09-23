@@ -1,9 +1,6 @@
-"""Shared chart branding: project name/version footer, repo QR code, watermark.
-
-Used by scripts/build_final_charts.py (and any other comparison chart) so
-every generated figure carries the same footer: project name+version,
-repo label+URL, a QR code linking to the repo, and an optional faint
-watermark image (assets/branding/watermark.png) in the bottom-left corner.
+"""Shared chart branding: single-line footer (logo, author, project+version,
+repo URL, QR code) used by scripts/build_final_charts.py and any other
+comparison chart, so every generated figure carries the same footer.
 """
 
 from __future__ import annotations
@@ -14,11 +11,12 @@ from pathlib import Path
 
 import matplotlib.image as mpimg
 import qrcode
+from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
 REPO_URL = "https://github.com/hachiko85/jev-ja-lab"
-REPO_LABEL = "hachiko85/jev-ja-lab"
-WATERMARK_PATH = ROOT / "assets/branding/watermark.png"
+AUTHOR = "hachiko85"
+LOGO_PATH = ROOT / "assets/branding/watermark_circle.png"
 _QR_CACHE_PATH = ROOT / "assets/branding/.repo_qr_cache.png"
 
 FIG_BG = "#12151c"
@@ -40,7 +38,11 @@ def project_name_version() -> str:
 def _ensure_qr() -> Path:
     if not _QR_CACHE_PATH.is_file():
         _QR_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        qrcode.make(REPO_URL, border=1).save(_QR_CACHE_PATH)
+        # qrcode.make() returns a 1-bit image; matplotlib's imshow applies a
+        # colormap to single-channel data instead of treating it as B/W, so
+        # convert to plain RGB before saving.
+        img = qrcode.make(REPO_URL, border=1).convert("RGB")
+        img.save(_QR_CACHE_PATH)
     return _QR_CACHE_PATH
 
 
@@ -57,35 +59,53 @@ def apply_font(plt) -> str:
 
 
 def draw_footer(fig, *, watermark: bool = True) -> None:
-    """Bottom-right: project name+version, repo label+URL, QR code (QR sits
-    in its own reserved corner so text never overlaps it).
-    Optional faint watermark in the bottom-left corner.
+    """Single-line footer: [circular logo] author  ...  project vX / repo URL [QR].
+
+    Logo+author sit at the left, project/version/URL+QR at the right, all on
+    one row so the footer stays a thin strip regardless of figure width.
     """
-    text_right_edge = 0.895
+    row_y = 0.012
+    row_h = 0.05
+
+    if watermark and LOGO_PATH.is_file():
+        try:
+            logo_img = mpimg.imread(LOGO_PATH)
+            logo_ax = fig.add_axes([0.012, row_y, row_h * 0.85, row_h * 0.85])
+            logo_ax.imshow(logo_img)
+            logo_ax.axis("off")
+            fig.text(
+                0.012 + row_h * 0.85 + 0.008, row_y + row_h * 0.425, AUTHOR,
+                ha="left", va="center", color=MUTED, fontsize=8.5,
+            )
+        except Exception:
+            pass
+
+    qr_size = row_h * 0.85
+    qr_x = 0.985 - qr_size
+    text_right_edge = qr_x - 0.01
     fig.text(
-        text_right_edge, 0.05, project_name_version(),
-        ha="right", va="bottom", color=TEXT, fontsize=8.5, fontweight="bold",
-    )
-    fig.text(
-        text_right_edge, 0.027, REPO_LABEL,
-        ha="right", va="bottom", color=MUTED, fontsize=6.5,
-    )
-    fig.text(
-        text_right_edge, 0.008, REPO_URL,
-        ha="right", va="bottom", color=MUTED, fontsize=6.5,
+        text_right_edge, row_y + row_h * 0.425,
+        f"{project_name_version()} / {REPO_URL}",
+        ha="right", va="center", color=MUTED, fontsize=7.5,
     )
     try:
         qr_img = mpimg.imread(_ensure_qr())
-        qr_ax = fig.add_axes([0.92, 0.008, 0.07, 0.07])
+        qr_ax = fig.add_axes([qr_x, row_y, qr_size, qr_size])
         qr_ax.imshow(qr_img)
         qr_ax.axis("off")
     except Exception:
         pass
-    if watermark and WATERMARK_PATH.is_file():
-        try:
-            wm_img = mpimg.imread(WATERMARK_PATH)
-            wm_ax = fig.add_axes([0.012, 0.008, 0.06, 0.06], zorder=0)
-            wm_ax.imshow(wm_img, alpha=0.35)
-            wm_ax.axis("off")
-        except Exception:
-            pass
+
+
+def _make_circular_logo(source: Path, dest: Path, size: int = 256) -> None:
+    """One-off helper (not called at chart-build time) to regenerate the
+    circular-cropped logo from a square source image."""
+    img = Image.open(source).convert("RGBA")
+    edge = min(img.size)
+    img = img.crop((0, 0, edge, edge)).resize((size, size), Image.LANCZOS)
+    mask = Image.new("L", (size, size), 0)
+    from PIL import ImageDraw
+
+    ImageDraw.Draw(mask).ellipse((0, 0, size, size), fill=255)
+    img.putalpha(mask)
+    img.save(dest)
