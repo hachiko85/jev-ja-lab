@@ -100,39 +100,56 @@ GROUPS = [
 # by hand against each method's summary.<primitive>.json) — the axes for the
 # per-primitive radar charts.
 PRIMITIVE_DATASETS: dict[str, list[str]] = {
+    # jad_afc_* excluded: matches the dataset set used by the reference
+    # dashboard screenshot this radar's axes/labels were aligned to.
     "noul": [
-        "jad_afc_false", "jad_afc_nei", "jad_afc_true", "janli_entailment",
-        "jcola_in_domain", "jcola_out_of_domain", "jnli_contradiction",
-        "jnli_entailment", "jnli_missing_evidence", "paws_x_ja", "textdetox_ja",
-        "wrime_anger_binary", "wrime_joy_binary", "wrime_positive_binary",
+        "janli_entailment", "jcola_in_domain", "jcola_out_of_domain",
+        "jnli_contradiction", "jnli_entailment", "jnli_missing_evidence",
+        "paws_x_ja", "textdetox_ja", "wrime_anger_binary", "wrime_joy_binary",
+        "wrime_positive_binary",
     ],
     "choice": [
-        "mmmlu_ja", "jmmlu", "jgpqa_diamond", "jcommonsenseqa", "xwinograd_ja",
-        "mgsm_ja", "gsm8k_ja_mc4", "gsm8k_ja_mc10", "jnli",
+        "gsm8k_ja_mc10", "gsm8k_ja_mc4", "xwinograd_ja", "jcommonsenseqa",
+        "mmmlu_ja", "jgpqa_diamond", "mgsm_ja", "jnli", "jmmlu",
     ],
     "score": [
-        "wrime_joy", "wrime_anger", "wrime_sentiment", "synthetic_urgency",
-        "synthetic_dissatisfaction", "synthetic_risk", "synthetic_relevance",
+        "synthetic_dissatisfaction", "synthetic_relevance", "synthetic_risk",
+        "synthetic_urgency", "wrime_anger", "wrime_joy", "wrime_sentiment",
     ],
 }
 PRIMITIVE_METRIC = {
     "noul": "f1", "choice": "accuracy", "score": "normalized_quadratic_weighted_kappa",
 }
+# "<dataset name>\n（<what it measures>）" — matches the reference dashboard's
+# axis-label convention so datasets are identifiable without prior context.
 DATASET_LABELS = {
-    "jad_afc_false": "JAD-AFC False", "jad_afc_nei": "JAD-AFC NEI",
-    "jad_afc_true": "JAD-AFC True", "janli_entailment": "JaNLI",
-    "jcola_in_domain": "JCoLA In", "jcola_out_of_domain": "JCoLA Out",
-    "jnli_contradiction": "JNLI矛盾", "jnli_entailment": "JNLI含意",
-    "jnli_missing_evidence": "JNLI情報不足", "paws_x_ja": "PAWS-X",
-    "textdetox_ja": "TextDetox", "wrime_anger_binary": "WRIME怒り有無",
-    "wrime_joy_binary": "WRIME喜び有無", "wrime_positive_binary": "WRIMEポジ有無",
-    "mmmlu_ja": "MMMLU", "jmmlu": "JMMLU", "jgpqa_diamond": "JGPQA",
-    "jcommonsenseqa": "JCommonsenseQA", "xwinograd_ja": "XWinograd",
-    "mgsm_ja": "MGSM", "gsm8k_ja_mc4": "GSM8K MC4", "gsm8k_ja_mc10": "GSM8K MC10",
-    "jnli": "JNLI", "wrime_joy": "WRIME喜び", "wrime_anger": "WRIME怒り",
-    "wrime_sentiment": "WRIME極性", "synthetic_urgency": "緊急度",
-    "synthetic_dissatisfaction": "不満度", "synthetic_risk": "危険度",
-    "synthetic_relevance": "関連度",
+    "janli_entailment": "JaNLI Entailment\n（難しい言い換えの含意判定）",
+    "jcola_in_domain": "JCoLA In-domain\n（既知構文の文法判断）",
+    "jcola_out_of_domain": "JCoLA Out-of-domain\n（未知構文の文法判断）",
+    "jnli_contradiction": "JNLI Contradiction\n（前提と仮説が矛盾するか）",
+    "jnli_entailment": "JNLI Entailment\n（前提から仮説を導けるか）",
+    "jnli_missing_evidence": "JNLI Neutral\n（真偽を決める情報が不足か）",
+    "paws_x_ja": "PAWS-X Japanese\n（2文が同じ意味か）",
+    "textdetox_ja": "TextDetox Japanese\n（日本語の有害表現検出）",
+    "wrime_anger_binary": "WRIME Anger Binary\n（読み手が怒りを感じるか）",
+    "wrime_joy_binary": "WRIME Joy Binary\n（読み手が喜びを感じるか）",
+    "wrime_positive_binary": "WRIME Positive Binary\n（読み手が肯定感情を持つか）",
+    "gsm8k_ja_mc10": "GSM8K JA MC10\n（数値推論・10択）",
+    "gsm8k_ja_mc4": "GSM8K JA MC4\n（数値推論・4択）",
+    "xwinograd_ja": "XWinograd JA\n（文脈・照応解析）",
+    "jcommonsenseqa": "JCommonsenseQA\n（日本語常識推論）",
+    "mmmlu_ja": "MMMLU JA-JP\n（一般・学術知識）",
+    "jgpqa_diamond": "JGPQA Diamond\n（高難度科学推論）",
+    "mgsm_ja": "MGSM JA\n（日本語数学推論）",
+    "jnli": "JNLI 3-class\n（日本語NLI・意味理解）",
+    "jmmlu": "JMMLU\n（日本語・日本固有知識）",
+    "synthetic_dissatisfaction": "Synthetic Dissatisfaction\n（顧客の不満度・5段階）",
+    "synthetic_relevance": "Synthetic Relevance\n（質問と回答の関連度・5段階）",
+    "synthetic_risk": "Synthetic Risk\n（事故・損失リスク・5段階）",
+    "synthetic_urgency": "Synthetic Urgency\n（業務対応の緊急度・5段階）",
+    "wrime_anger": "WRIME Anger\n（読み手の怒り強度・4段階）",
+    "wrime_joy": "WRIME Joy\n（読み手の喜び強度・4段階）",
+    "wrime_sentiment": "WRIME Sentiment\n（否定〜肯定の感情・5段階）",
 }
 
 
@@ -339,6 +356,7 @@ def _legend_name(r: dict) -> str:
 def _render_radar(
     series: list[dict], axis_labels: list[str], *,
     title: str, subtitle: str, out_path: Path, label_fontsize: float = 13,
+    h_margin: float = 0.11,
 ) -> None:
     apply_font(plt)
     theme = {
@@ -376,7 +394,7 @@ def _render_radar(
     legend = axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.05), ncol=1, frameon=False)
     for text in legend.get_texts():
         text.set_color(theme["text_color"])
-    figure.subplots_adjust(top=0.86, bottom=0.18, left=0.11, right=0.89)
+    figure.subplots_adjust(top=0.86, bottom=0.18, left=h_margin, right=1 - h_margin)
     draw_footer(figure)
     figure.savefig(out_path, dpi=180)
     plt.close(figure)
@@ -426,11 +444,7 @@ def build_per_primitive_radars(rows: list[dict]) -> None:
     own metric (F1/accuracy/QWK) per dataset."""
     method_to_group = {g["method"]: g for g in GROUPS}
     titles = {"noul": "Noul詳細比較", "choice": "Choice詳細比較", "score": "Score詳細比較"}
-    subtitles = {
-        "noul": "データセット別F1(全手法共通14件)",
-        "choice": "データセット別accuracy(全手法共通9件)",
-        "score": "データセット別normalized QWK(全手法共通7件)",
-    }
+    metric_labels = {"noul": "F1", "choice": "accuracy", "score": "normalized QWK"}
     for primitive in ("noul", "choice", "score"):
         axes = PRIMITIVE_DATASETS[primitive]
         axis_labels = [DATASET_LABELS.get(a, a) for a in axes]
@@ -442,10 +456,11 @@ def build_per_primitive_radars(rows: list[dict]) -> None:
                 "name": _legend_name(row), "color": COLORS[i % len(COLORS)],
                 "values": [scores[a] for a in axes],
             })
-        label_fontsize = 11 if len(axes) <= 9 else 9.5
+        subtitle = f"データセット別{metric_labels[primitive]}(全手法共通{len(axes)}件)"
         _render_radar(
-            series, axis_labels, title=titles[primitive], subtitle=subtitles[primitive],
-            out_path=OUT / f"radar-{primitive}-detail.png", label_fontsize=label_fontsize,
+            series, axis_labels, title=titles[primitive], subtitle=subtitle,
+            out_path=OUT / f"radar-{primitive}-detail.png", label_fontsize=10,
+            h_margin=0.20,
         )
 
 
