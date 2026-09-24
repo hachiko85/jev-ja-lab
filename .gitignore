@@ -14,3 +14,4 @@ checkpoints/
 uv.lock
 datasets/*
 !datasets/.gitkeep
+assets/branding/.repo_qr_cache.png

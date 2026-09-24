@@ -93,9 +93,44 @@ uv run jev-ja-lab-eval-workflow \
 
 LLM-jp Toxicity属性別、HelpSteer2全件、Civil Comments全件、JSFactCheckBenchの定義とadapterも実装済みです。標準実行では処理時間または認証要件を理由に無効化しています。`tasks.<primitive>.datasets` へIDを戻すと追加評価できます。
 
-## 今回の結果
+## 評価結果(手法比較、2026-09-23時点)
 
-12モデル、30軸、全Primitive coverage `3/3`、欠損0で完了しています。
+同一の判断タスク(Noul/Choice/Score、全30データセット共通)を、判定原理が異なる9手法
+(TypeSafe Jev API、semif系3種、AlexWortega_openjev系2種、laya、embedding、素のBERT直接評価)
+で横断比較した結果です。詳細(primitive別内訳・データセット別レーダー・全生データ)は
+`results/eval-summary/README.md`参照。
+
+| 手法 | Overall | ベースモデル | パラメータ数 | 推論時間(ms/件) |
+|---|---:|---|---:|---:|
+| **Jev v1.13.0** | **0.823** | TypeSafe Jev API | 非公開 | 235.12 |
+| semif 2-shot | 0.682 | Qwen3.5-4B | 4.66B | 90.00 |
+| semif-ja 0-shot | 0.660 | Qwen3.5-4B | 4.66B | 83.92 |
+| semif 0-shot | 0.632 | Qwen3.5-4B | 4.66B | 65.87 |
+| AlexWortega_openjev 4B v2 | 0.596 | Qwen3.5-4B | 4.54B | 75.28 |
+| AlexWortega_openjev 0.8B v2 | 0.544 | Qwen3.5-0.8B | 0.85B | 44.28 |
+| laya multilingual | 0.450 | ModernBERT・独自 | 0.161B | 18.32 |
+| modernbert-ja-310m | 0.444 | (直接評価) | 0.315B | 2.38 |
+| ruri-v3-310m | 0.403 | (embedding) | 0.315B | 1.35 |
+
+![手法別ランキング](assets/eval/ranking-bar-chart.png)
+![モデルサイズvs精度](assets/eval/size-vs-accuracy-scatter.png)
+![推論時間比較](assets/eval/latency-bar-chart.png)
+![全手法レーダーチャート](assets/eval/radar-final-all-methods.png)
+
+主な知見:
+
+- **Jev(v1.13.0)が全手法中トップ**(0.823)。ただし外部SaaS APIのためパラメータ数非公開、
+  推論時間も最長(235ms/件、ネットワーク往復込み) — ローカル代替手法とはコスト構造が異なる。
+- **few-shot(2-shot)が最も効いた**: 追加学習なしでzero-shot最良のsemif-jaを上回った。
+- **日本語自然文プロンプト > chatテンプレート+JSON構造化**(同一モデル・同一原理のzero-shot比較、
+  semif-ja 0.660 vs semif 0.632)。
+- **素のBERT直接評価が同サイズ帯のembedding手法を上回った**(modernbert-ja-310m 0.444 vs
+  ruri-v3-310m 0.403)。
+
+## 次のトークンlogit方式のモデル比較(2026-09-18)
+
+12モデル、30軸、全Primitive coverage `3/3`、欠損0で完了しています(上記とは別軸: こちらは
+判定原理を`next_token_logit`に固定した上でのベースモデル比較)。
 
 | Overall上位 | Score |
 |---|---:|
