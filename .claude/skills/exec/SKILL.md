@@ -46,6 +46,14 @@ scorer = NLICrossEncoderScorer(
 from openjev_ja.methods.typesafe_jev import JevScorer
 scorer = JevScorer(model="jev-latest")
 
+# HopitAI/hopper(LoRAをQwen3.5-4Bにマージ。primitiveは "noul"|"choice"|"score" のいずれか。研究・デモ用途のみ)
+from openjev_ja.methods.hopper import HopperScorer
+scorer = HopperScorer(primitive="choice", device="cuda")
+
+# Mapika/decider-4b v2(`uv pip install --no-deps decider-ai`が前提)
+from openjev_ja.methods.decider import DeciderScorer
+scorer = DeciderScorer(primitive="choice", revision="v2", device="cuda")
+
 # embedding / laya / laya-bert / jevlike は訓練済みheadファイル
 # (head_path / checkpoint_path) が要るため、configs/eval/*.yaml内の
 # 該当エントリからパスを確認して使う。
