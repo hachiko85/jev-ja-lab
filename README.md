@@ -12,6 +12,7 @@
 
 ## 📰 News
 
+- **2026-09-27** **CLM v0.1**(Contrastive-LM/CLM-v0.1-8B)を評価対象に追加。
 - **2026-09-26** 評価データセット [openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) を整備
   (11 件を収録、それ以外は配布元から取得)。HelpSteer2-JA を追加の Score 指標として追加。**decider-4b v2** と
   **Hopper** を評価対象に追加。
@@ -100,7 +101,7 @@ Jev API を評価する場合は `.env` に `TYPESAFE_API_KEY` / `TYPESAFE_API_U
 
 ### 🏆 Results
 
-判定原理が異なる 8 ライブラリを、同一のデータ・条件で比較しています(2026-09-26 時点、0-shot)。
+判定原理が異なる 9 ライブラリを、同一のデータ・条件で比較しています(2026-09-26 時点、0-shot)。
 
 | ライブラリ | Overall | Noul | Choice | Score | HelpSteer2 | ベースモデル | パラメータ数 | 推論時間(ms/件) |
 |---|---:|---:|---:|---:|---:|---|---:|---:|
@@ -112,6 +113,7 @@ Jev API を評価する場合は `.env` に `TYPESAFE_API_KEY` / `TYPESAFE_API_U
 | AlexWortega_openjev 4B v2 | 0.596 | 0.558 | 0.463 | 0.768 | 0.520 | Qwen3.5-4B(qwen3.5-4b-nli-v2) | 4.54B | 75.28 |
 | laya multilingual | 0.450 | 0.339 | 0.313 | 0.698 | 0.607 | ModernBERT・独自 | 0.161B | 18.32 |
 | modernbert-ja-310m | 0.444 | 0.432 | 0.376 | 0.523 | 0.503 | (直接評価) | 0.315B | 2.38 |
+| CLM v0.1 | 0.410 | 0.423 | 0.289 | 0.519 | 0.512 | Qwen3-8B + 射影ヘッド(Contrastive-LM/CLM-v0.1-8B) | 8.2B | 89.33 |
 
 Overall は Noul(F1)・Choice(accuracy)・Score(正規化 QWK)の等加重平均です。HelpSteer2 は追加の Score 指標
 (5 軸の正規化 QWK 平均、0.5 が一致なし水準)で、Overall には含めません。Hopper の推論時間は GPU 単独で測り直した値、
@@ -137,6 +139,8 @@ Jev は API のためネットワーク往復を含みます。2-shot 版(semif�
 - **Jev(v1.13.0)が全ライブラリ中トップ**(0.823)。外部 API のためパラメータ数は非公開で、推論時間も最長です。
 - **decider-4b v2 がローカル実行で最良**(0.716)。同じ Qwen3.5-4B 系の Hopper(0.684)、semif-ja(0.660)より高く、
   Choice で特に差がつきます。追加指標の HelpSteer2 では Jev(0.650)も上回りました(0.674)。
+- **CLM v0.1 は日本語では機能しなかった**(Overall 0.410、Noul の一部と HelpSteer2 は 0.5 前後)。英語で学習されたモデルで、
+  Choice も accuracy 0.29 と低い。推論時間は約 89ms/件。
 - **日本語の自然文プロンプトが、chat テンプレート + JSON 構造化より良い**(同一モデル・0-shot で semif-ja 0.660 vs
   semif 0.632)。
 
@@ -178,6 +182,7 @@ Coming soon.(学習機能は現在整備中です。現フェーズは評価基�
 
 - decider-4b: <https://huggingface.co/Mapika/decider-4b> / <https://github.com/Mapika/decider>
 - Hopper: <https://huggingface.co/HopitAI/hopper>
+- CLM: <https://huggingface.co/Contrastive-LM/CLM-v0.1-8B> / <https://github.com/Contrastive-LM/CLM>
 - semif: <https://github.com/TheoLeeCJ/SemIf>
 - AlexWortega/openjev: <https://huggingface.co/AlexWortega/openjev>
 - laya: <https://pypi.org/project/laya/>

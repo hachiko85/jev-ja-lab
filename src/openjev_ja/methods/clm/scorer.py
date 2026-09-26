@@ -131,7 +131,7 @@ class ClmScorer:
         device: str = "cuda:0",
         dtype: str = "bfloat16",
         max_tokens: int = MAX_TOKENS,
-        cache_size: int = 50_000,
+        cache_size: int = 20_000,
         model_id: str | None = None,
     ) -> None:
         if primitive not in PRIMITIVES:
@@ -216,12 +216,13 @@ class ClmScorer:
         if missing:
             vectors = self._encode(missing)
             for text, vector in zip(missing, vectors, strict=True):
-                self._cache[text] = vector.detach().to(self.device)
+                # on the CPU: a GPU-side cache eats the ~2GB of headroom a 16GB card has left
+                self._cache[text] = vector.detach().cpu()
         for text in texts:
             self._cache.move_to_end(text)
         while len(self._cache) > self._cache_size:
             self._cache.popitem(last=False)
-        return torch.stack([self._cache[text] for text in texts])
+        return torch.stack([self._cache[text] for text in texts]).to(self.device)
 
     def score(self, question: str, options: list[str]) -> ScoreResult:
         torch = self._torch

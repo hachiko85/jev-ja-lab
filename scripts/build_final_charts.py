@@ -84,6 +84,13 @@ GROUPS = [
     },
 
     {
+        "method": "CLM v0.1",
+        "helpsteer": "clm-v0.1-8b-score",
+        "label_top": "CLM v0.1", "label_bottom": "Qwen3-8B + heads (8.2B)",
+        "noul": "clm-v0.1-8b-noul", "choice": "clm-v0.1-8b-choice",
+        "score": "clm-v0.1-8b-score", "params_b": 8.2, "latency_ms": 89.33,
+    },
+    {
         # Version pinned from the API's own response_model field, not guessed.
         "method": "Jev(jev-1.13.0)",
         "helpsteer": "jev-latest", "helpsteer_run": "eval-helpsteer-jev",
