@@ -145,8 +145,10 @@ HelpSteer2-JA(`helpsteer2_ja`、benchmark-v1)のみです。
 
 評価の split は `test` です。配布元に test が無い、または test のラベルが非公開のものは、
 下表「使用split」のとおり validation / valid、または split 区分のない全件を使います。
-`load_dataset` で各サブセットを開くと、そのサブセットに含まれるデータセットの配布元一覧が
-`test` split として返ります(データ本体は次節の手順で取得します)。
+Data Studio と `load_dataset` が返す各サブセットの `test` split は、データ本体ではなく、そのサブセットに
+含まれるデータセットの配布元一覧(ルーティング表)です。中身を見るには `viewer_url` 列のリンクから各配布元の
+ページを開いてください(Hugging Face 上のデータセットはその Data Studio、GitHub はリポジトリの該当 revision)。
+データ本体の取得方法は次節を参照してください。
 
 ## Datasets
 

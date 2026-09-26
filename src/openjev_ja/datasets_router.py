@@ -84,8 +84,26 @@ def select(
     return entries
 
 
+def viewer_url(entry: dict[str, Any], manifest: dict[str, Any]) -> str:
+    """Where the actual rows can be browsed: the source's own Data Studio page for Hub
+    datasets, the repository page otherwise."""
+    source = entry["source"]
+    if source["kind"] in ("hf_dataset", "hf_parquet") and source.get("split"):
+        config = source.get("config") or "default"
+        repo, split = source["repo_id"], source["split"]
+        return f"https://huggingface.co/datasets/{repo}/viewer/{config}/{split}"
+    if source["kind"] == "hf_snapshot":
+        revision = source["revision"] or "main"
+        return f"https://huggingface.co/datasets/{source['repo_id']}/tree/{revision}"
+    if source["kind"] == "own":
+        return f"https://huggingface.co/datasets/{manifest['repo_id']}/tree/main/{source['path']}"
+    return f"{source['url'].removesuffix('.git')}/tree/{source['revision']}"
+
+
 def catalog_rows(manifest: dict[str, Any], subset: str) -> list[dict[str, Any]]:
-    """Flat, viewer-friendly rows describing where each dataset of a subset comes from."""
+    """Flat rows describing where each dataset of a subset comes from (what the Hub viewer
+    shows for a subset). The rows are a routing table: the data itself stays at its origin,
+    reachable through `viewer_url` (browse) and the client (fetch)."""
     rows = []
     for entry in select(manifest, subset):
         source = entry["source"]
@@ -93,16 +111,16 @@ def catalog_rows(manifest: dict[str, Any], subset: str) -> list[dict[str, Any]]:
             {
                 "id": entry["id"],
                 "title": entry["title"],
-                "description": entry["description"],
                 "tasks": ",".join(entry["tasks"]),
+                "rows": entry["rows"],
+                "license": entry["license"],
                 "source_kind": source["kind"],
                 "source_repo": source.get("repo_id") or source.get("url") or manifest["repo_id"],
                 "source_config": source.get("config"),
                 "source_split": source.get("split"),
                 "revision": source.get("revision"),
-                "license": entry["license"],
-                "url": entry["url"],
-                "rows": entry["rows"],
+                "viewer_url": viewer_url(entry, manifest),
+                "description": entry["description"],
             }
         )
     return rows
