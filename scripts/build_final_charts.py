@@ -19,14 +19,12 @@ import sys
 from pathlib import Path
 
 import matplotlib
-import numpy as np
-import yaml
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from chart_common import FIG_BG, GRID, MUTED, PLOT_BG, TEXT, apply_font, draw_footer
+from chart_common import FIG_BG, GRID, MUTED, PLOT_BG, TEXT, apply_font
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "results/eval-summary"
@@ -34,19 +32,11 @@ OUT = ROOT / "results/eval-summary"
 COLORS = ["#4b83ad", "#f28e2b", "#59a14f", "#e15759", "#b07aa1",
           "#76b7b2", "#edc948", "#ff9da7", "#9c755f", "#17becf", "#8c564b"]
 
+# 2-shot variants (semif, decider) are evaluated but left out of the charts for now.
 # (model_id in eval_summary.json's `models[]`, or {noul,choice,score} model
 # ids when the method is split per-primitive, or literal scores for a method
 # with no local eval_summary entry e.g. Jev's own API-reported scores)
 GROUPS = [
-    {
-        "method": "semif(2-shot)",
-        "helpsteer": "semif-logit-fewshot-qwen3.5-4b-2shot-score",
-        "label_top": "semif 2-shot", "label_bottom": "Qwen3.5-4B (4.66B)",
-        "noul": "semif-logit-fewshot-qwen3.5-4b-2shot-noul",
-        "choice": "semif-logit-fewshot-qwen3.5-4b-2shot-choice",
-        "score": "semif-logit-fewshot-qwen3.5-4b-2shot-score",
-        "params_b": 4.66, "latency_ms": 90.00,
-    },
     {
         "method": "semif-ja(zero-shot)",
         "helpsteer": "qwen3.5-4b",
@@ -66,24 +56,11 @@ GROUPS = [
         "single": "openjev-4b-v2", "params_b": 4.54, "latency_ms": 75.28,
     },
     {
-        "method": "AlexWortega_openjev 0.8B",
-        "helpsteer": "openjev-0.8b",
-        "label_top": "AlexWortega_openjev 0.8B v2", "label_bottom": "Qwen3.5-0.8B (0.85B)",
-        "single": "openjev-0.8b", "params_b": 0.85, "latency_ms": 44.28,
-    },
-    {
         "method": "laya-multilingual",
         "helpsteer": "laya-multilingual-score",
         "label_top": "laya multilingual", "label_bottom": "ModernBERT・独自 (0.161B)",
         "noul": "laya-multilingual-noul", "choice": "laya-multilingual-choice",
         "score": "laya-multilingual-score", "params_b": 0.161, "latency_ms": 18.32,
-    },
-    {
-        "method": "embedding: ruri-v3-310m",
-        "helpsteer": "ruri-v3-310m-score",
-        "label_top": "ruri-v3-310m", "label_bottom": "(0.315B)",
-        "noul": "ruri-v3-310m-noul", "choice": "ruri-v3-310m-choice",
-        "score": "ruri-v3-310m-score", "params_b": 0.315, "latency_ms": 1.35,
     },
     {
         "method": "bert: modernbert-ja-310m",
@@ -274,58 +251,11 @@ def build_ranking_chart(rows: list[dict]) -> None:
     ax.grid(axis="x", color=GRID, linewidth=0.8, alpha=0.8)
     for spine in ax.spines.values():
         spine.set_color(GRID)
-    fig.suptitle("手法別ランキング", fontsize=17, fontweight="bold", color=TEXT, y=0.97)
+    fig.suptitle("ライブラリ別総合スコア", fontsize=17, fontweight="bold", color=TEXT, y=0.97)
     fig.text(0.5, 0.925, "3primitive(Noul/Choice/Score)の等加重平均、降順",
               ha="center", color=MUTED, fontsize=9)
     fig.subplots_adjust(top=0.88, bottom=0.11, left=0.19, right=0.95)
-    draw_footer(fig)
     out = OUT / "ranking-bar-chart.png"
-    fig.savefig(out, dpi=180, facecolor=FIG_BG)
-    plt.close(fig)
-    print("wrote", out)
-
-
-def build_primitive_chart(rows: list[dict]) -> None:
-    rows = sorted(rows, key=lambda r: -r["overall"])
-    apply_font(plt)
-    colors = {"noul": "#e15759", "choice": "#4b83ad", "score": "#59a14f"}
-    labels = {"noul": "Noul(F1)", "choice": "Choice(accuracy)", "score": "Score(QWK)"}
-    n = len(rows)
-    x = np.arange(n)
-    width = 0.26
-
-    fig, ax = plt.subplots(figsize=(17, 9))
-    fig.patch.set_facecolor(FIG_BG)
-    ax.set_facecolor(PLOT_BG)
-    for i, prim in enumerate(("noul", "choice", "score")):
-        values = [r[prim] for r in rows]
-        offset = (i - 1) * width
-        ax.bar(x + offset, values, width, color=colors[prim], label=labels[prim])
-    ax.set_xticks(x)
-    ax.set_xticklabels([])
-    ax.set_ylim(0, 1.0)
-    ax.set_ylabel("スコア(0-1正規化)", color=MUTED, fontsize=10)
-    ax.tick_params(axis="y", colors=MUTED)
-    ax.tick_params(axis="x", length=0)
-    ax.grid(axis="y", color=GRID, linewidth=0.8, alpha=0.8)
-    for spine in ax.spines.values():
-        spine.set_color(GRID)
-    for xi, r in zip(x, rows, strict=True):
-        ax.text(xi, -0.025, r["label_top"], transform=ax.get_xaxis_transform(),
-                ha="right", va="top", color=TEXT, fontsize=9.5, rotation=25, rotation_mode="anchor")
-        if r.get("label_bottom"):
-            ax.text(xi, -0.11, r["label_bottom"], transform=ax.get_xaxis_transform(),
-                    ha="right", va="top", color=MUTED, fontsize=7,
-                    rotation=25, rotation_mode="anchor")
-    legend = ax.legend(loc="upper right", frameon=False, ncol=3, bbox_to_anchor=(1.0, 1.1))
-    for text in legend.get_texts():
-        text.set_color(TEXT)
-    fig.suptitle("primitive別スコア比較", fontsize=17, fontweight="bold", color=TEXT, y=0.975)
-    fig.text(0.5, 0.93, "Noul(F1) / Choice(accuracy) / Score(QWK) の手法別内訳",
-              ha="center", color=MUTED, fontsize=9)
-    fig.subplots_adjust(top=0.87, bottom=0.28, left=0.055, right=0.98)
-    draw_footer(fig)
-    out = OUT / "primitive-comparison-bar-chart.png"
     fig.savefig(out, dpi=180, facecolor=FIG_BG)
     plt.close(fig)
     print("wrote", out)
@@ -358,7 +288,6 @@ def build_scatter_and_latency_charts(rows: list[dict]) -> None:
     fig.suptitle("モデルサイズ vs 精度", fontsize=17, fontweight="bold", color=TEXT, y=0.975)
     fig.text(0.5, 0.925, "Jev(パラメータ非公開)は対象外", ha="center", color=MUTED, fontsize=9)
     fig.subplots_adjust(top=0.87, bottom=0.13, left=0.09, right=0.97)
-    draw_footer(fig)
     out1 = OUT / "size-vs-accuracy-scatter.png"
     fig.savefig(out1, dpi=180, facecolor=FIG_BG)
     plt.close(fig)
@@ -389,11 +318,10 @@ def build_scatter_and_latency_charts(rows: list[dict]) -> None:
     ax.grid(axis="x", color=GRID, linewidth=0.8, alpha=0.8, which="both")
     for spine in ax.spines.values():
         spine.set_color(GRID)
-    fig.suptitle("手法別 平均推論時間", fontsize=17, fontweight="bold", color=TEXT, y=0.97)
+    fig.suptitle("ライブラリ別平均推論時間", fontsize=17, fontweight="bold", color=TEXT, y=0.97)
     fig.text(0.5, 0.925, "全データセット件数加重平均。Jevはネットワーク往復込み(API)、他はGPU",
               ha="center", color=MUTED, fontsize=9)
     fig.subplots_adjust(top=0.88, bottom=0.10, left=0.22, right=0.95)
-    draw_footer(fig)
     out2 = OUT / "latency-bar-chart.png"
     fig.savefig(out2, dpi=180, facecolor=FIG_BG)
     plt.close(fig)
@@ -414,8 +342,8 @@ def _render_radar(
     apply_font(plt)
     theme = {
         "figure_color": FIG_BG, "plot_color": PLOT_BG, "text_color": TEXT,
-        "muted_color": MUTED, "tick_color": "#8b93a3", "grid_color": GRID,
-        "spine_color": "#454d5c",
+        "muted_color": MUTED, "tick_color": MUTED, "grid_color": GRID,
+        "spine_color": "#8c959f",
     }
     count = len(axis_labels)
     angles = [i * 2 * math.pi / count for i in range(count)]
@@ -444,42 +372,13 @@ def _render_radar(
         axis.fill(closed_angles, values, color=item["color"], alpha=0.06)
     figure.suptitle(title, fontsize=19, fontweight="bold", y=0.965, color=theme["text_color"])
     figure.text(0.5, 0.935, subtitle, ha="center", color=theme["muted_color"], fontsize=10)
-    legend = axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.05), ncol=1, frameon=False)
+    legend = axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.11), ncol=1, frameon=False)
     for text in legend.get_texts():
         text.set_color(theme["text_color"])
-    figure.subplots_adjust(top=0.86, bottom=0.18, left=h_margin, right=1 - h_margin)
-    draw_footer(figure)
+    figure.subplots_adjust(top=0.86, bottom=0.20, left=h_margin, right=1 - h_margin)
     figure.savefig(out_path, dpi=180)
     plt.close(figure)
     print("wrote", out_path)
-
-
-def build_radar_chart(rows: list[dict]) -> None:
-    axis_ids = ("noul", "choice", "score")
-    axis_labels = ["Noul\n(二値判定・F1)", "Choice\n(多肢選択・accuracy)", "Score\n(順序尺度・QWK)"]
-    series = [
-        {"name": _legend_name(r), "color": COLORS[i % len(COLORS)],
-         "values": [r[axis] for axis in axis_ids]}
-        for i, r in enumerate(rows)
-    ]
-    _render_radar(
-        series, axis_labels, title="全手法比較",
-        subtitle="Noul(F1) / Choice(accuracy) / Score(QWK)",
-        out_path=OUT / "radar-final-all-methods.png",
-    )
-    yaml_out = OUT / "radar-final-all-methods.yaml"
-    yaml_out.write_text(
-        yaml.safe_dump(
-            {
-                "version": 1,
-                "axes": list(axis_ids),
-                "series": [{"name": s["name"], "values": s["values"]} for s in series],
-            },
-            allow_unicode=True, sort_keys=False,
-        ),
-        encoding="utf-8",
-    )
-    print("wrote", yaml_out)
 
 
 def _dataset_scores(g: dict, primitive: str) -> dict[str, float]:
@@ -496,7 +395,7 @@ def build_per_primitive_radars(rows: list[dict]) -> None:
     within that primitive, series = the methods, values = the primitive's
     own metric (F1/accuracy/QWK) per dataset."""
     method_to_group = {g["method"]: g for g in GROUPS}
-    titles = {"noul": "Noul詳細比較", "choice": "Choice詳細比較", "score": "Score詳細比較"}
+    titles = {"noul": "Noul", "choice": "Choice", "score": "Score"}
     metric_labels = {"noul": "F1", "choice": "accuracy", "score": "normalized QWK"}
     for primitive in ("noul", "choice", "score"):
         axes = PRIMITIVE_DATASETS[primitive]
@@ -518,7 +417,7 @@ def build_per_primitive_radars(rows: list[dict]) -> None:
                 "values": values,
             })
         count = len(axis_labels)
-        subtitle = f"データセット別{metric_labels[primitive]}(全手法共通{count}件)"
+        subtitle = f"データセット別{metric_labels[primitive]}(全ライブラリ共通{count}件)"
         if with_helpsteer:
             subtitle += " HelpSteer2-JAはbenchmark-v1・2,500件"
         _render_radar(
@@ -528,34 +427,11 @@ def build_per_primitive_radars(rows: list[dict]) -> None:
         )
 
 
-def build_helpsteer_radar(rows: list[dict]) -> None:
-    """Radar over the five HelpSteer2-JA axes (normalized QWK), methods that have the run."""
-    series = []
-    for i, row in enumerate(rows):
-        if not row.get("helpsteer_axes"):
-            continue
-        series.append({
-            "name": _legend_name(row), "color": COLORS[i % len(COLORS)],
-            "values": [row["helpsteer_axes"][a] for a in HELPSTEER_AXES],
-        })
-    if not series:
-        return
-    _render_radar(
-        series, [HELPSTEER_LABELS[a] for a in HELPSTEER_AXES],
-        title="HelpSteer2-JA Score詳細比較",
-        subtitle="軸別normalized QWK(benchmark-v1・2,500件、Score追加指標)",
-        out_path=OUT / "radar-helpsteer-detail.png", label_fontsize=10, h_margin=0.20,
-    )
-
-
 def main() -> None:
     rows = build_table()
     build_ranking_chart(rows)
-    build_primitive_chart(rows)
     build_scatter_and_latency_charts(rows)
-    build_radar_chart(rows)
     build_per_primitive_radars(rows)
-    build_helpsteer_radar(rows)
 
 
 if __name__ == "__main__":
