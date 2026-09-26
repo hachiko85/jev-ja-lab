@@ -24,6 +24,8 @@ RUNS: list[tuple[str, list[str] | None]] = [
     ("eval-semif-logit-series", None),
     ("eval-semif-logit-fewshot-series", None),
     ("eval-bert-series", None),
+    ("eval-hopper-series", None),
+    ("eval-decider-series", None),
     ("eval-primitives-20260918", ["qwen3.5-4b"]),  # pre-existing next_token_logit baseline
 ]
 
@@ -48,9 +50,13 @@ def model_dirs(run_root: Path, only: list[str] | None) -> list[Path]:
 
 
 def main() -> None:
+    # README.md is hand-written documentation, not a generated artifact: keep it.
+    readme = (OUT / "README.md").read_bytes() if (OUT / "README.md").is_file() else None
     if OUT.exists():
         shutil.rmtree(OUT)
     OUT.mkdir(parents=True)
+    if readme is not None:
+        (OUT / "README.md").write_bytes(readme)
     sources_dir = OUT / "_sources"
     sources_dir.mkdir()
 

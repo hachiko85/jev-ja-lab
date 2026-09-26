@@ -91,31 +91,37 @@ uv run jev-ja-lab-eval-workflow \
 | Score | 7 | 8,300 |
 | 合計 | 30 | 62,884 |
 
-LLM-jp Toxicity属性別、HelpSteer2全件、Civil Comments全件、JSFactCheckBenchの定義とadapterも実装済みです。標準実行では処理時間または認証要件を理由に無効化しています。`tasks.<primitive>.datasets` へIDを戻すと追加評価できます。
+LLM-jp Toxicity属性別、Civil Comments全件、JSFactCheckBenchの定義とadapterも実装済みです。標準実行では処理時間または認証要件を理由に無効化しています。`tasks.<primitive>.datasets` へIDを戻すと追加評価できます。
 
-## 評価結果(手法比較、2026-09-23時点)
+## 評価結果(手法比較、2026-09-26時点)
 
-同一の判断タスク(Noul/Choice/Score、全30データセット共通)を、判定原理が異なる9手法
-(TypeSafe Jev API、semif系3種、AlexWortega_openjev系2種、laya、embedding、素のBERT直接評価)
+同一の判断タスク(Noul/Choice/Score、全30データセット共通)を、判定原理が異なる11手法
+(TypeSafe Jev API、decider-4b v2、Hopper、semif系3種、AlexWortega_openjev系2種、laya、embedding、素のBERT直接評価)
 で横断比較した結果です。詳細(primitive別内訳・データセット別レーダー・全生データ)は
 `results/eval-summary/README.md`参照。
 
-| 手法 | Overall | ベースモデル | パラメータ数 | 推論時間(ms/件) |
-|---|---:|---|---:|---:|
-| **Jev v1.13.0** | **0.823** | TypeSafe Jev API | 非公開 | 235.12 |
-| semif 2-shot | 0.682 | Qwen3.5-4B | 4.66B | 90.00 |
-| semif-ja 0-shot | 0.660 | Qwen3.5-4B | 4.66B | 83.92 |
-| semif 0-shot | 0.632 | Qwen3.5-4B | 4.66B | 65.87 |
-| AlexWortega_openjev 4B v2 | 0.596 | Qwen3.5-4B | 4.54B | 75.28 |
-| AlexWortega_openjev 0.8B v2 | 0.544 | Qwen3.5-0.8B | 0.85B | 44.28 |
-| laya multilingual | 0.450 | ModernBERT・独自 | 0.161B | 18.32 |
-| modernbert-ja-310m | 0.444 | (直接評価) | 0.315B | 2.38 |
-| ruri-v3-310m | 0.403 | (embedding) | 0.315B | 1.35 |
+| 手法 | Overall | HelpSteer2 | ベースモデル | パラメータ数 | 推論時間(ms/件) |
+|---|---:|---:|---|---:|---:|
+| **Jev v1.13.0** | **0.823** | 0.650 | TypeSafe Jev API | 非公開 | 235.12 |
+| decider v2 | 0.716 | 0.674 | Qwen3.5-4B-Base(Mapika/decider-4b v2) | 4.2B | 70.43 |
+| Hopper 0-shot | 0.684 | 0.616 | Qwen3.5-4B + LoRA(HopitAI/hopper) | 4.66B | 71.06 |
+| semif 2-shot | 0.682 | 0.581 | Qwen3.5-4B | 4.66B | 90.00 |
+| semif-ja 0-shot | 0.660 | 0.554 | Qwen3.5-4B | 4.66B | 83.92 |
+| semif 0-shot | 0.632 | 0.582 | Qwen3.5-4B | 4.66B | 65.87 |
+| AlexWortega_openjev 4B v2 | 0.596 | 0.520 | Qwen3.5-4B(qwen3.5-4b-nli-v2) | 4.54B | 75.28 |
+| AlexWortega_openjev 0.8B v2 | 0.544 | 0.533 | Qwen3.5-0.8B(qwen3.5-0.8b-nli-v2s-long) | 0.85B | 44.28 |
+| laya multilingual | 0.450 | 0.607 | ModernBERT・独自(22層/768隠れ層) | 0.161B | 18.32 |
+| modernbert-ja-310m | 0.444 | 0.503 | (直接評価) | 0.315B | 2.38 |
+| ruri-v3-310m | 0.403 | 0.491 | (embedding、最良) | 0.315B | 1.35 |
+
+HelpSteer2列は追加のScore指標(HelpSteer2-JA benchmark-v1・2,500件×5軸の正規化QWK平均、
+0.5が一致なし水準)で、Overallには含めない。Hopperの推論時間はGPU単独で測り直した値。
 
 ![手法別ランキング](assets/eval/ranking-bar-chart.png)
 ![モデルサイズvs精度](assets/eval/size-vs-accuracy-scatter.png)
 ![推論時間比較](assets/eval/latency-bar-chart.png)
 ![全手法レーダーチャート](assets/eval/radar-final-all-methods.png)
+![Score詳細比較(HelpSteer2-JA 5軸を含む)](assets/eval/radar-score-detail.png)
 
 主な知見:
 
@@ -126,6 +132,11 @@ LLM-jp Toxicity属性別、HelpSteer2全件、Civil Comments全件、JSFactCheck
   semif-ja 0.660 vs semif 0.632)。
 - **素のBERT直接評価が同サイズ帯のembedding手法を上回った**(modernbert-ja-310m 0.444 vs
   ruri-v3-310m 0.403)。
+- **decider-4b v2がローカル手法で最良**(0.716)。同じQwen3.5-4B級のsemif 2-shot(0.682)、
+  Hopper(0.684)より高く、Choiceで特に差がつく。
+- **HelpSteer2-JA(追加Score指標)ではdecider v2(0.674)がJev(0.650)を上回った**。
+  laya multilingual(0.607)はOverall下位ながらこの指標では上位で、semif系(0.55〜0.58)や
+  AlexWortega_openjev(0.52〜0.53)より高い。BERT直接評価とembeddingは0.5前後でほぼ判別できていない。
 
 ## 次のトークンlogit方式のモデル比較(2026-09-18)
 
