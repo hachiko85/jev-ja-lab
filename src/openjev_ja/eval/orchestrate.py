@@ -15,6 +15,8 @@ from openjev_ja.common import DatasetUnavailableError
 from openjev_ja.eval.local_data import load_local_benchmark
 from openjev_ja.eval.runner import run_evaluation
 from openjev_ja.methods.bert_masked_lm import MaskedLMScorer
+from openjev_ja.methods.clm import ClmScorer
+from openjev_ja.methods.clm.scorer import ENCODER_REVISION as CLM_ENCODER_REVISION
 from openjev_ja.methods.decider import DeciderScorer
 from openjev_ja.methods.embedding import EmbeddingScorer
 from openjev_ja.methods.hopper import HopperScorer
@@ -162,6 +164,25 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
             model_id=model.get("model_id"),
             few_shot_count=int(model.get("few_shot_count", 0)),
             datasets_root=str(runtime["datasets_root"]),
+        )
+    if scorer_name == "clm":
+        if not model.get("primitive"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'clm' requires 'primitive'"
+            )
+        clm_kwargs: dict[str, Any] = {
+            argument: model[argument]
+            for argument in ("heads_repo", "heads_revision", "max_tokens")
+            if argument in model
+        }
+        return ClmScorer(
+            _model_reference(model, runtime),
+            primitive=str(model["primitive"]),
+            revision=model.get("revision", CLM_ENCODER_REVISION),
+            device=device,
+            dtype=str(model.get("dtype", "bfloat16")),
+            model_id=model.get("model_id"),
+            **clm_kwargs,
         )
     if scorer_name == "semif-logit":
         few_shot_count = int(model.get("few_shot_count", 0))

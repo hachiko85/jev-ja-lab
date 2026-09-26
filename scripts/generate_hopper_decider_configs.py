@@ -45,6 +45,20 @@ SERIES = {
             "dtype": "bfloat16",
         },
     },
+    "clm": {
+        "run_name": "eval-clm-series",
+        "model_id": "clm-v0.1-8b",
+        "label": "CLM v0.1 (Qwen3-8B)",
+        "color": "#e377c2",
+        "entry": {
+            "repo_id": "Qwen/Qwen3-8B",
+            "revision": "b968826d9c46dd6066d109eabc6255188de91218",
+            "scorer": "clm",
+            "heads_repo": "Contrastive-LM/CLM-v0.1-8B",
+            "heads_revision": "e939398d4556fcd9400c76fa8c5a513202f42b0a",
+            "dtype": "bfloat16",
+        },
+    },
     "decider-fewshot": {
         "run_name": "eval-decider-fewshot-series",
         "model_id": "decider-4b-v2-2shot",
