@@ -1,20 +1,19 @@
-"""Render and publish the `hachiko85/openjev-ja-eval` router repository.
+# ruff: noqa: E501
+"""Render and publish the `hachiko85/openjev-ja-eval` repository.
 
-From `datasets_router/manifest.json` this builds
-  - README.md            dataset card (subsets, per-dataset table, licences)
-  - noul|choice|score|all/test.parquet   catalog of where each dataset of a subset comes from
-    (what the Hub viewer / `load_dataset(repo, "noul", split="test")` returns)
-  - openjev_ja_eval.py   the standalone copy of `openjev_ja.datasets_router`
-  - manifest.json
-and uploads them together with the project's own data (synthetic_score, HelpSteer2-JA
-benchmark-v1) in one commit. Anything else in the repo — the earlier re-hosted copies of
-third-party datasets and the old fetch scripts — is removed, because the repo is a router.
+The repository is a CC BY-SA 4.0 collection plus a router:
+
+  - mirror  noul|choice|score|all/test.parquet   the redistributable datasets (MIT, Apache-2.0,
+            CC BY, CC BY-SA) in one schema, built by scripts/build_dataset_mirror.py
+  - router  router/test.parquet                  routing table for the datasets that are not
+            mirrored (fetched from their origin): JMMLU, WRIME, JGPQA, PAWS-X, TextDetox
+  - manifest.json, openjev_ja_eval.py (client), LICENSES/, README.md
+  - the project's own data as files (synthetic_score/, helpsteer2_ja/) for the jev-ja-lab layout
 
     python scripts/publish_dataset_router.py --dry-run     # show what would change
     python scripts/publish_dataset_router.py               # commit to the Hub
 """
 
-# ruff: noqa: E501
 from __future__ import annotations
 
 import argparse
@@ -25,14 +24,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import build_dataset_mirror  # noqa: E402
 
 from openjev_ja import datasets_router as router  # noqa: E402
 
-MANIFEST = ROOT / "datasets_router" / "manifest.json"
-README = ROOT / "datasets_router" / "README.md"
+DIR = ROOT / "datasets_router"
+MANIFEST = DIR / "manifest.json"
+README = DIR / "README.md"
 OWN_FILES = {
-    "synthetic_score": ROOT / "datasets/openjev-extra/synthetic_score",
-    "helpsteer2_ja": ROOT / "datasets/helpsteer2_ja",
+    "synthetic_score": "datasets/openjev-extra/synthetic_score",
+    "helpsteer2_ja": "datasets/helpsteer2_ja",
 }
 # Only the extracted benchmark subset is the project's own data; the full 19,958-row
 # translation (data.parquet) belongs to kunishou/HelpSteer2-20k-ja and is not re-hosted.
@@ -54,36 +57,42 @@ def _cell(text: object) -> str:
 
 def dataset_table(manifest: dict) -> str:
     lines = [
-        "| Name | Description | Task | Source | Split used | License | Rows |",
-        "|---|---|---|---|---|---|---:|",
+        "| Name | Description | Task | Distribution | Source | Split used | License | Rows |",
+        "|---|---|---|---|---|---|---|---:|",
     ]
     for entry in manifest["datasets"]:
         source = entry["source"]
-        split = source.get("split") or "(split区分なし)"
+        split = source.get("split") or "(none)"
         if source["kind"] == "own":
             tree = f"https://huggingface.co/datasets/{manifest['repo_id']}/tree/main/{source['path']}"
-            origin = f"[{manifest['repo_id']}/{source['path']}]({tree})(本リポジトリ内)"
+            origin = f"[{manifest['repo_id']}/{source['path']}]({tree})"
             if "derived_from" in source:
                 origin += f"。原典: [{source['derived_from']['repo_id']}]({entry['url']})"
         else:
             origin = f"[{entry['url'].split('//', 1)[1]}]({entry['url']})"
+        distribution = "mirror" if entry["distribution"] == "mirror" else "router"
         lines.append(
             f"| `{entry['id']}` {_cell(entry['title'])} | {_cell(entry['description'])} "
-            f"| {'・'.join(entry['tasks'])} | {origin} | {split} | {_cell(entry['license'])} "
-            f"| {entry['rows']:,} |"
+            f"| {'・'.join(entry['tasks'])} | {distribution} | {origin} | {split} "
+            f"| {_cell(entry['license'])} | {entry['rows']:,} |"
         )
     return "\n".join(lines)
 
 
-def render_readme(manifest: dict) -> str:
+def render_readme(manifest: dict, counts: dict[str, dict[str, int]]) -> str:
     subsets = "\n".join(
-        f"| `{name}` | {SUBSET_LABELS[name]} | `test` | "
-        f"{', '.join(f'`{i}`' for i in manifest['subsets'][name])} |"
+        f"| `{name}` | {SUBSET_LABELS[name]} | `test` | {sum(counts[name].values()):,} | "
+        f"{', '.join(f'`{k}`' for k in counts[name])} |"
         for name in router.SUBSETS
     )
     excluded = "\n".join(
         f"- `{e['id']}` {e['title']} ([{e['url']}]({e['url']}), {e['license']}): {e['reason']}"
         for e in manifest["excluded"]
+    )
+    routed = "、".join(
+        f"{e['title']}({e['license']})"
+        for e in manifest["datasets"]
+        if e["distribution"] == "router"
     )
     sources = "\n".join(
         f"- {e['title']}: <{e['url']}>"
@@ -94,7 +103,9 @@ def render_readme(manifest: dict) -> str:
         )
         for e in manifest["datasets"] + manifest["excluded"]
     )
-    usage = (ROOT / "datasets_router" / "usage.md").read_text(encoding="utf-8").strip()
+    usage = (DIR / "usage.md").read_text(encoding="utf-8").strip()
+    n_mirror = sum(1 for e in manifest["datasets"] if e["distribution"] == "mirror")
+    n_router = len(manifest["datasets"]) - n_mirror
     return f"""---
 license: {manifest['license']}
 language:
@@ -120,41 +131,59 @@ configs:
   data_files:
   - split: test
     path: all/test.parquet
+- config_name: router
+  data_files:
+  - split: test
+    path: router/test.parquet
 ---
 
 # openjev-ja-eval
 
-> Japanese evaluation datasets for Noul / Choice / Score decision models: a router, not a mirror
+> Japanese evaluation datasets for Noul / Choice / Score decision models
 
 ## What is this?
 
-[jev-ja-lab](https://github.com/hachiko85/jev-ja-lab) で日本語の判断モデルを評価するための
-データセット集です。判断タスクを Noul(二値判定)・Choice(選択式)・Score(段階評価)の
-3 種類に分け、既存の公開データセット {len(manifest['datasets'])} 件をまとめています。
+[jev-ja-lab](https://github.com/hachiko85/jev-ja-lab) で日本語の判断モデルを評価するためのデータセット集です。
+判断タスクを Noul(二値判定)・Choice(選択式)・Score(段階評価)の 3 種類に分け、既存の公開データセット
+{len(manifest['datasets'])} 件をまとめています。
 
-第三者のデータ本体は本リポジトリに含みません。`manifest.json` に配布元・revision・split・
-ライセンスを記録し、取得時に各配布元(Hugging Face Hub / GitHub)から直接ダウンロードします。
-本リポジトリ内で管理するのは、独自に作成した `synthetic_score` と、評価用に抽出した
-HelpSteer2-JA(`helpsteer2_ja`、benchmark-v1)のみです。
+MIT・Apache-2.0・CC BY・CC BY-SA 4.0 で公開されている {n_mirror} 件は、共通の形式に揃えて本リポジトリに
+**収録(ミラー)** し、集合物として **CC BY-SA 4.0** で配布します。それ以外の {n_router} 件({routed})は、再配布の
+条件が合わないため本リポジトリには含めず、`manifest.json` に配布元・revision・split を記録して、取得時に
+配布元から直接ダウンロードします(ルーター)。
 
 ## Subsets
 
-| Subset | Description | Split | Datasets |
-|---|---|---|---|
+| Subset | Description | Split | Rows | Datasets (mirror) |
+|---|---|---|---:|---|
 {subsets}
+| `router` | ルーティング表(収録していないデータセットの配布元一覧) | `test` | {len(router.catalog_rows(manifest, 'router'))} | |
 
-評価の split は `test` です。配布元に test が無い、または test のラベルが非公開のものは、
-下表「使用split」のとおり validation / valid、または split 区分のない全件を使います。
-Data Studio と `load_dataset` が返す各サブセットの `test` split は、データ本体ではなく、そのサブセットに
-含まれるデータセットの配布元一覧(ルーティング表)です。中身を見るには `viewer_url` 列のリンクから各配布元の
-ページを開いてください(Hugging Face 上のデータセットはその Data Studio、GitHub はリポジトリの該当 revision)。
-データ本体の取得方法は次節を参照してください。
+評価の split は `test` です。配布元に test が無い、または test のラベルが非公開のもの(JCommonsenseQA・
+JNLI・JCoLA)は validation / valid を `test` として収録し、元の split は `source_split` 列に残しています。
+
+### Data fields
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | 行ID(データセットID + 元データ内の番号) |
+| `primitive` | string | `Noul` / `Choice` / `Score` |
+| `dataset_id` | string | 評価用データセットID(jev-ja-lab の設定と同一。例: `jnli_entailment`) |
+| `source_dataset` | string | 出典データセット名 |
+| `source_repo` | string | 出典の配布元(Hugging Face repo または GitHub URL) |
+| `source_url` | string | 出典データセットのURL |
+| `source_split` | string | 出典での split(`(none)` は split 区分なし) |
+| `source_license` | string | 出典データセットのライセンス |
+| `question` | string | モデルに与える質問・状態 |
+| `options` | list[string] | 選択肢(Noul は `いいえ`・`はい`、Score は段階の説明) |
+| `gold_index` | int | 正解の選択肢番号(Score は段階) |
+| `metadata` | string | 元データ由来の補足情報(JSON 文字列) |
 
 ## Datasets
 
 {dataset_table(manifest)}
 
-Not routed (redistribution prohibited or separate approval required):
+収録していないデータセット(ルーター対象。`router` サブセットに配布元一覧があります):
 
 {excluded}
 
@@ -162,33 +191,29 @@ Not routed (redistribution prohibited or separate approval required):
 
 ## Licensing Information
 
-本リポジトリは **{manifest['license_label']}** で配布します。収録データセットが継承するライセンスの
-うち最も厳しいものを採用しており、該当するのは **JMMLU と WRIME**(いずれも CC BY-NC-ND 4.0)です。
+収録データ(mirror)は **{manifest['license_label']}** の集合物として配布します。MIT・Apache-2.0・CC BY・CC BY-SA 4.0 の
+データセットのみを収録しており、CC BY-SA 4.0 はそれらを包含できる最も条件の厳しいライセンスです。
 
-再配布・商用利用に関する注意:
-
-- **本リポジトリにサードパーティのデータ本体は含まれません。** 取得したデータの利用条件は、
-  データセット一覧に記載した各配布元のライセンスが適用されます。
-- **JMMLU・WRIME は非商用・改変禁止(NC-ND)です。** これらを含むサブセット(`choice` の JMMLU、
-  `noul` / `score` / `all` の WRIME)を取得したデータは、商用利用できません。取得したデータを
-  改変したものを再配布することもできません。商用利用する場合は、該当データセットを除外
-  (`--only` で必要なものだけ指定)し、残りの各ライセンスを個別に確認してください。
-- **継承(SA)条件付き**: JCommonsenseQA・MGSM・JNLI(JGLUE)・JCoLA・JaNLI は CC BY-SA 4.0 です。
-  改変物を再配布する場合は同じライセンスにする必要があります。
-- **TextDetox** は OpenRAIL++ で、利用目的に関する制限が付きます。**PAWS-X** は配布元カードで
-  `other` とされており、配布元の独自条件に従ってください。
-- **MIT / Apache-2.0 / CC BY 4.0**(MMMLU・GSM8K-JA・JAD-AFC・XWinograd 等)は、著作権表示・
-  ライセンス表示・帰属表示が必要です。
-- 独自データ: `synthetic_score` は MIT です。`helpsteer2_ja` は kunishou/HelpSteer2-20k-ja
-  (CC BY 4.0)の抽出物のため、原典(NVIDIA HelpSteer2)と翻訳者の帰属表示が必要です。
-- 上記は各配布元のカード・リポジトリの記載に基づく整理であり、法的助言ではありません。
-  再配布・商用利用の前に、各配布元の原文を必ず確認してください。
+- **各データセットの元のライセンスと表示義務は維持されます。** 集合物のライセンスは、収録した各データセットの
+  元のライセンス(データセット一覧の License 列)を置き換えるものではありません。ライセンス全文と帰属表示は
+  [`LICENSES/`](LICENSES/)(`ATTRIBUTION.md`)にあります。
+- **共通形式への変換を行っています。** 質問文・選択肢の組み立て、Choice の誤答選択肢の生成(GSM8K-JA・MGSM)、
+  validation の `test` としての収録などです。内容は変更していません。詳細は `LICENSES/ATTRIBUTION.md`。
+- **再配布する場合:** CC BY-SA 4.0 の条件(帰属表示、改変の明示、同じライセンスでの再配布)に加え、
+  各データセットの表示義務(特に Apache-2.0 は NOTICE と改変の明示、MIT は著作権表示と許諾文の同梱)を守ってください。
+  CC BY-SA 4.0 のデータを他のライセンスのデータと 1 つに混ぜて再配布すると、混ぜた全体に SA 条件が及びます。
+- **商用利用:** 収録データは、各データセットの元のライセンスが許す範囲で商用利用できます(NC 条件のデータは収録していません)。
+- **ルーター対象**(JMMLU・WRIME は CC BY-NC-ND 4.0、JGPQA は要承認、PAWS-X は独自条件、TextDetox は OpenRAIL++ の利用制限)は
+  本リポジトリに含まれません。取得したデータの条件は各配布元のものが適用され、NC-ND のデータは商用利用も改変物の再配布もできません。
+- 上記は各配布元のカード・リポジトリの記載に基づく整理であり、法的助言ではありません。再配布・商用利用の前に、
+  各配布元の原文を必ず確認してください。
+- 独自データ: `synthetic_score` は MIT です。`helpsteer2_ja` は kunishou/HelpSteer2-20k-ja(CC BY 4.0)の抽出物のため、
+  原典(NVIDIA HelpSteer2)と翻訳者の帰属表示が必要です。
 
 ## Acknowledgements
 
 評価データを公開されている各データセットの作成者・配布者の皆様に感謝します。
-また、HelpSteer2 を公開した NVIDIA、日本語訳 HelpSteer2-20k-ja を公開した kunishou 氏に
-感謝します。
+また、HelpSteer2 を公開した NVIDIA、日本語訳 HelpSteer2-20k-ja を公開した kunishou 氏に感謝します。
 
 ## Citation Information
 
@@ -200,35 +225,52 @@ Not routed (redistribution prohibited or separate approval required):
 """
 
 
-def build_files(manifest: dict, workdir: Path) -> dict[str, Path]:
-    """repo path -> local file, for everything the router repo should contain."""
+def build_files(manifest: dict, workdir: Path, datasets_root: Path) -> tuple[dict[str, Path], dict]:
+    """repo path -> local file for everything the repository should contain, and row counts."""
     import pyarrow as pa
     import pyarrow.parquet as pq
 
-    README.write_text(render_readme(manifest), encoding="utf-8")
-    files: dict[str, Path] = {
-        "README.md": README,
-        "manifest.json": MANIFEST,
-        "openjev_ja_eval.py": ROOT / "src/openjev_ja/datasets_router.py",
-    }
-    for subset in router.SUBSETS:
-        rows = router.catalog_rows(manifest, subset)
+    rows = build_dataset_mirror.build_rows(datasets_root)
+    rows["all"] = rows["noul"] + rows["choice"] + rows["score"]
+    counts: dict[str, dict[str, int]] = {}
+    files: dict[str, Path] = {}
+    for subset, subset_rows in rows.items():
+        counts[subset] = {}
+        for row in subset_rows:
+            counts[subset][row["dataset_id"]] = counts[subset].get(row["dataset_id"], 0) + 1
         path = workdir / subset / "test.parquet"
         path.parent.mkdir(parents=True, exist_ok=True)
-        pq.write_table(pa.Table.from_pylist(rows), path)
+        pq.write_table(pa.Table.from_pylist(subset_rows), path)
         files[f"{subset}/test.parquet"] = path
+    path = workdir / "router" / "test.parquet"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.Table.from_pylist(router.catalog_rows(manifest, "router")), path)
+    files["router/test.parquet"] = path
+
+    README.write_text(render_readme(manifest, counts), encoding="utf-8")
+    files.update(
+        {
+            "README.md": README,
+            "manifest.json": MANIFEST,
+            "openjev_ja_eval.py": ROOT / "src/openjev_ja/datasets_router.py",
+        }
+    )
+    for path in sorted((DIR / "LICENSES").iterdir()):
+        files[f"LICENSES/{path.name}"] = path
     for directory, local in OWN_FILES.items():
         include = OWN_INCLUDE[directory]
-        for path in sorted(local.rglob("*")):
+        base = ROOT / local
+        for path in sorted(base.rglob("*")):
             if path.is_file() and (include is None or path.name in include):
-                files[f"{directory}/{path.relative_to(local).as_posix()}"] = path
-    return files
+                files[f"{directory}/{path.relative_to(base).as_posix()}"] = path
+    return files, counts
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--repo", default=None)
+    parser.add_argument("--datasets-root", default=str(ROOT / "datasets"))
     args = parser.parse_args()
     manifest = json.loads(MANIFEST.read_text(encoding="utf-8"))
     repo = args.repo or manifest["repo_id"]
@@ -236,14 +278,12 @@ def main() -> int:
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete, HfApi
 
     with tempfile.TemporaryDirectory() as tmp:
-        files = build_files(manifest, Path(tmp))
+        files, counts = build_files(manifest, Path(tmp), Path(args.datasets_root))
         api = HfApi()
         existing = set(api.list_repo_files(repo, repo_type="dataset"))
-        keep = set(files)
-        deletions = sorted(
-            path for path in existing - keep if path not in {".gitattributes"}
-        )
+        deletions = sorted(existing - set(files) - {".gitattributes"})
         print(f"upload {len(files)} files, delete {len(deletions)} files in {repo}")
+        print({k: sum(v.values()) for k, v in counts.items()})
         for path in deletions:
             print("  delete", path)
         if args.dry_run:
@@ -254,7 +294,7 @@ def main() -> int:
             repo,
             operations,
             repo_type="dataset",
-            commit_message="Turn into a router: manifest + client; keep only own data",
+            commit_message="Mirror the CC BY-SA-compatible datasets; keep the rest as router",
         )
         print(commit.commit_url)
     return 0

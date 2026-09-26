@@ -93,24 +93,30 @@ uv run jev-ja-lab-eval-workflow \
 
 LLM-jp Toxicity属性別、Civil Comments全件、JSFactCheckBenchの定義とadapterも実装済みです。標準実行では処理時間または認証要件を理由に無効化しています。`tasks.<primitive>.datasets` へIDを戻すと追加評価できます。
 
-## データセットの取得(openjev-ja-evalルーター)
+## データセットの取得(openjev-ja-eval)
 
-評価データは、Hugging Face Hubの`hachiko85/openjev-ja-eval`を経由して取得します。このリポジトリは
-サードパーティのデータを再配布せず、各データセットの配布元・revision・split・ライセンスを記した
-`manifest.json`(コピー: `datasets_router/manifest.json`)と取得クライアントだけを持つルーターで、
-取得時に各配布元(Hugging Face Hub / GitHub)から直接ダウンロードします。独自データ
-(`synthetic_score`、抽出したHelpSteer2-JA benchmark-v1)のみ同リポジトリ内で管理します。
+評価データは、Hugging Face Hubの`hachiko85/openjev-ja-eval`から取得します。MIT・Apache-2.0・CC BY・
+CC BY-SA 4.0のデータセット(11件)は共通形式でリポジトリに収録し(集合物としてCC BY-SA 4.0)、
+それ以外(JMMLU・WRIME・PAWS-X・TextDetox、要承認のJGPQA)は再配布せず、`manifest.json`
+(コピー: `datasets_router/manifest.json`)に記録した配布元から直接ダウンロードするルーターで扱います。
+
+```python
+from datasets import load_dataset
+
+noul = load_dataset("hachiko85/openjev-ja-eval", "noul", split="test")  # noul / choice / score / all
+```
 
 ```bash
-# サブセット: noul / choice / score / all(split=test)
+# 評価用に datasets/ 配置で取得(全データセットを配布元から。サブセット: noul / choice / score / all)
 uv run jev-ja-lab-datasets list --subset all
 uv run jev-ja-lab-datasets fetch --subset all --datasets-root ./datasets
 ```
 
-再配布禁止・要承認のデータ(JGPQA)はルーター対象外で、`--include-gated`と自分のHFトークンで
-のみ取得を試みます。データセット名・詳細・リンク・使用split・ライセンスの一覧は
+収録データの各行には、`primitive`(Noul / Choice / Score)と出典データセット名(`source_dataset`)が
+入ります。データセット名・詳細・リンク・使用split・ライセンスの一覧は
 [`datasets_router/README.md`](datasets_router/README.md)(Hub上のカードと同じ)を参照してください。
-ルーターの更新は`scripts/publish_dataset_router.py`(`--dry-run`で差分確認)で行います。
+更新は`scripts/build_dataset_mirror.py`(収録データの生成)と`scripts/publish_dataset_router.py`
+(`--dry-run`で差分確認)で行います。
 
 ## 評価結果(手法比較、2026-09-26時点)
 
