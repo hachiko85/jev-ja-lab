@@ -32,7 +32,15 @@ description: jev-ja-labの開発環境を新規セットアップする、また
    - `OPENJEV_DATASETS_DIR` — データセットキャッシュ先を既定(`~/.cache/huggingface`)から
      変える場合のみ設定
 
-5. **動作確認**:
+5. **評価データの取得**(フル評価を回す場合。`--limit`付きの単発確認だけなら不要):
+   ```bash
+   uv run jev-ja-lab-datasets fetch --subset all --datasets-root ./datasets
+   ```
+   `hachiko85/openjev-ja-eval`のルーター経由で各配布元から直接取得する(データは再配布しない)。
+   サブセットは`noul`/`choice`/`score`/`all`。privateの間は`HF_TOKEN`が必要。
+   JGPQAは要承認のため対象外(`--include-gated`と自分のトークンでのみ試行)。
+
+6. **動作確認**:
    ```bash
    uv run pytest
    uv run ruff check .
@@ -41,7 +49,7 @@ description: jev-ja-labの開発環境を新規セットアップする、また
    `test_summary_chart_contains_primitive_features`、Windows/cp932ロケール依存)は
    無視してよい。それ以外の失敗はセットアップ不備の兆候として報告する。
 
-6. **GPU不要のスモークテスト**(任意、余裕があれば):
+7. **GPU不要のスモークテスト**(任意、余裕があれば):
    ```bash
    uv run jev-ja-lab-eval --dataset mmmlu_ja --scorer mock --limit 5
    ```

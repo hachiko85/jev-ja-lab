@@ -39,6 +39,15 @@ laya = [
 jevlike = [
   "jevlike[transformers] @ git+https://github.com/vinnylarouge/jevlike.git",
 ]
+# HopitAI/hopper LoRA. Adapter weights are research/demo use only.
+hopper = [
+  "peft>=0.21",
+]
+# Mapika/decider-4b. decider-ai's metadata pins numpy==1.26.4, which would downgrade
+# numpy for the whole environment, so it is NOT listed here: install it without deps
+#   uv pip install --no-deps decider-ai
+# (the inference modules used by methods.decider do not import numpy).
+decider = []
 dev = [
   "pytest>=8.3",
   "ruff>=0.11",
@@ -46,6 +55,7 @@ dev = [
 
 [project.scripts]
 jev-ja-lab-eval = "openjev_ja.eval.cli:main"
+jev-ja-lab-datasets = "openjev_ja.datasets_router:main"
 jev-ja-lab-radar = "openjev_ja.visualize.cli:main"
 jev-ja-lab-orchestrate = "openjev_ja.eval.orchestrate_cli:main"
 jev-ja-lab-eval-noul = "openjev_ja.eval.eval_noul:main"

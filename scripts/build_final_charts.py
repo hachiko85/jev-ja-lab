@@ -32,7 +32,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "results/eval-summary"
 
 COLORS = ["#4b83ad", "#f28e2b", "#59a14f", "#e15759", "#b07aa1",
-          "#76b7b2", "#edc948", "#ff9da7", "#9c755f"]
+          "#76b7b2", "#edc948", "#ff9da7", "#9c755f", "#17becf", "#8c564b"]
 
 # (model_id in eval_summary.json's `models[]`, or {noul,choice,score} model
 # ids when the method is split per-primitive, or literal scores for a method
@@ -40,6 +40,7 @@ COLORS = ["#4b83ad", "#f28e2b", "#59a14f", "#e15759", "#b07aa1",
 GROUPS = [
     {
         "method": "semif(2-shot)",
+        "helpsteer": "semif-logit-fewshot-qwen3.5-4b-2shot-score",
         "label_top": "semif 2-shot", "label_bottom": "Qwen3.5-4B (4.66B)",
         "noul": "semif-logit-fewshot-qwen3.5-4b-2shot-noul",
         "choice": "semif-logit-fewshot-qwen3.5-4b-2shot-choice",
@@ -48,44 +49,67 @@ GROUPS = [
     },
     {
         "method": "semif-ja(zero-shot)",
+        "helpsteer": "qwen3.5-4b",
         "label_top": "semif-ja 0-shot", "label_bottom": "Qwen3.5-4B (4.66B)",
         "single": "qwen3.5-4b", "params_b": 4.66, "latency_ms": 83.92,
     },
     {
         "method": "semif(zero-shot)",
+        "helpsteer": "semif-logit-qwen3.5-4b",
         "label_top": "semif 0-shot", "label_bottom": "Qwen3.5-4B (4.66B)",
         "single": "semif-logit-qwen3.5-4b", "params_b": 4.66, "latency_ms": 65.87,
     },
     {
         "method": "AlexWortega_openjev 4B v2",
+        "helpsteer": "openjev-4b-v2",
         "label_top": "AlexWortega_openjev 4B v2", "label_bottom": "Qwen3.5-4B (4.54B)",
         "single": "openjev-4b-v2", "params_b": 4.54, "latency_ms": 75.28,
     },
     {
         "method": "AlexWortega_openjev 0.8B",
+        "helpsteer": "openjev-0.8b",
         "label_top": "AlexWortega_openjev 0.8B v2", "label_bottom": "Qwen3.5-0.8B (0.85B)",
         "single": "openjev-0.8b", "params_b": 0.85, "latency_ms": 44.28,
     },
     {
         "method": "laya-multilingual",
+        "helpsteer": "laya-multilingual-score",
         "label_top": "laya multilingual", "label_bottom": "ModernBERT・独自 (0.161B)",
         "noul": "laya-multilingual-noul", "choice": "laya-multilingual-choice",
         "score": "laya-multilingual-score", "params_b": 0.161, "latency_ms": 18.32,
     },
     {
         "method": "embedding: ruri-v3-310m",
+        "helpsteer": "ruri-v3-310m-score",
         "label_top": "ruri-v3-310m", "label_bottom": "(0.315B)",
         "noul": "ruri-v3-310m-noul", "choice": "ruri-v3-310m-choice",
         "score": "ruri-v3-310m-score", "params_b": 0.315, "latency_ms": 1.35,
     },
     {
         "method": "bert: modernbert-ja-310m",
+        "helpsteer": "modernbert-ja-310m",
         "label_top": "modernbert-ja-310m", "label_bottom": "(0.315B)",
         "single": "modernbert-ja-310m", "params_b": 0.315, "latency_ms": 2.38,
     },
     {
+        "method": "Hopper(zero-shot)",
+        "helpsteer": "hopper-qwen3.5-4b-lora-score",
+        "label_top": "Hopper 0-shot", "label_bottom": "Qwen3.5-4B + LoRA (4.66B)",
+        "noul": "hopper-qwen3.5-4b-lora-noul", "choice": "hopper-qwen3.5-4b-lora-choice",
+        "score": "hopper-qwen3.5-4b-lora-score", "params_b": 4.66, "latency_ms": 71.06,
+    },
+    {
+        "method": "decider-4b v2",
+        "helpsteer": "decider-4b-v2-score",
+        "label_top": "decider v2", "label_bottom": "Qwen3.5-4B-Base (4.2B)",
+        "noul": "decider-4b-v2-noul", "choice": "decider-4b-v2-choice",
+        "score": "decider-4b-v2-score", "params_b": 4.2, "latency_ms": 70.43,
+    },
+
+    {
         # Version pinned from the API's own response_model field, not guessed.
         "method": "Jev(jev-1.13.0)",
+        "helpsteer": "jev-latest", "helpsteer_run": "eval-helpsteer-jev",
         "label_top": "Jev v1.13.0", "label_bottom": None,
         "noul": 0.7386120142176127, "choice": 0.8474204549250123, "score": 0.8821615110661686,
         "params_b": None, "latency_ms": 235.12,
@@ -153,6 +177,30 @@ DATASET_LABELS = {
 }
 
 
+HELPSTEER_AXES = ("correctness", "helpfulness", "verbosity", "complexity", "coherence")
+HELPSTEER_LABELS = {
+    "correctness": "Correctness\n（回答の正確性）",
+    "helpfulness": "Helpfulness\n（回答の有用性）",
+    "verbosity": "Verbosity\n（回答の詳細度）",
+    "complexity": "Complexity\n（回答の複雑さ）",
+    "coherence": "Coherence\n（回答の一貫性）",
+}
+
+
+def _helpsteer_scores(g: dict) -> dict[str, float]:
+    """Per-axis normalized QWK on HelpSteer2-JA benchmark-v1 (2,500 rows), the extra Score
+    indicator kept out of the 30-dataset Score aggregate. Empty until that run exists."""
+    run = g.get("helpsteer_run", "eval-helpsteer-series")
+    path = ROOT / "results" / run / g["helpsteer"] / "summary.score.json"
+    if not path.is_file():
+        return {}
+    rows = {r["dataset"]: r for r in json.loads(path.read_text(encoding="utf-8"))}
+    axes = {a: rows.get(f"helpsteer_{a}") for a in HELPSTEER_AXES}
+    if any(v is None for v in axes.values()):
+        return {}
+    return {a: v[PRIMITIVE_METRIC["score"]] for a, v in axes.items()}
+
+
 def build_table() -> list[dict]:
     summary = json.loads((OUT / "eval_summary.json").read_text(encoding="utf-8"))
     models = {m["id"]: m for m in summary["models"]}
@@ -177,11 +225,16 @@ def build_table() -> list[dict]:
             score = prim_score(g["score"], "score")
         else:
             noul, choice, score = g["noul"], g["choice"], g["score"]
+        helpsteer_axes = _helpsteer_scores(g)
+        helpsteer = (
+            sum(helpsteer_axes.values()) / len(helpsteer_axes) if helpsteer_axes else None
+        )
         vals = [v for v in (noul, choice, score) if v is not None]
         overall = sum(vals) / len(vals) if vals else None
         rows.append({
             "method": g["method"], "label_top": g["label_top"], "label_bottom": g["label_bottom"],
             "noul": noul, "choice": choice, "score": score, "overall": overall,
+            "helpsteer": helpsteer, "helpsteer_axes": helpsteer_axes,
             "params_b": g["params_b"], "latency_ms": g["latency_ms"],
         })
     rows.sort(key=lambda r: -(r["overall"] or 0))
@@ -448,20 +501,51 @@ def build_per_primitive_radars(rows: list[dict]) -> None:
     for primitive in ("noul", "choice", "score"):
         axes = PRIMITIVE_DATASETS[primitive]
         axis_labels = [DATASET_LABELS.get(a, a) for a in axes]
+        # Score also carries the HelpSteer2-JA axes (extra indicator); only methods that
+        # have that run can be drawn on the extended radar.
+        with_helpsteer = primitive == "score" and all(r.get("helpsteer_axes") for r in rows)
+        if with_helpsteer:
+            axis_labels += [f"HelpSteer2 {HELPSTEER_LABELS[a]}" for a in HELPSTEER_AXES]
         series = []
         for i, row in enumerate(rows):
             group = method_to_group[row["method"]]
             scores = _dataset_scores(group, primitive)
+            values = [scores[a] for a in axes]
+            if with_helpsteer:
+                values += [row["helpsteer_axes"][a] for a in HELPSTEER_AXES]
             series.append({
                 "name": _legend_name(row), "color": COLORS[i % len(COLORS)],
-                "values": [scores[a] for a in axes],
+                "values": values,
             })
-        subtitle = f"データセット別{metric_labels[primitive]}(全手法共通{len(axes)}件)"
+        count = len(axis_labels)
+        subtitle = f"データセット別{metric_labels[primitive]}(全手法共通{count}件)"
+        if with_helpsteer:
+            subtitle += " HelpSteer2-JAはbenchmark-v1・2,500件"
         _render_radar(
             series, axis_labels, title=titles[primitive], subtitle=subtitle,
             out_path=OUT / f"radar-{primitive}-detail.png", label_fontsize=10,
             h_margin=0.20,
         )
+
+
+def build_helpsteer_radar(rows: list[dict]) -> None:
+    """Radar over the five HelpSteer2-JA axes (normalized QWK), methods that have the run."""
+    series = []
+    for i, row in enumerate(rows):
+        if not row.get("helpsteer_axes"):
+            continue
+        series.append({
+            "name": _legend_name(row), "color": COLORS[i % len(COLORS)],
+            "values": [row["helpsteer_axes"][a] for a in HELPSTEER_AXES],
+        })
+    if not series:
+        return
+    _render_radar(
+        series, [HELPSTEER_LABELS[a] for a in HELPSTEER_AXES],
+        title="HelpSteer2-JA Score詳細比較",
+        subtitle="軸別normalized QWK(benchmark-v1・2,500件、Score追加指標)",
+        out_path=OUT / "radar-helpsteer-detail.png", label_fontsize=10, h_margin=0.20,
+    )
 
 
 def main() -> None:
@@ -471,6 +555,7 @@ def main() -> None:
     build_scatter_and_latency_charts(rows)
     build_radar_chart(rows)
     build_per_primitive_radars(rows)
+    build_helpsteer_radar(rows)
 
 
 if __name__ == "__main__":

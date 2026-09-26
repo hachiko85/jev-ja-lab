@@ -1,0 +1,258 @@
+version: 1
+runtime:
+  run_name: eval-helpsteer-series
+  smoke_run_name: eval-helpsteer-series-smoke
+  resume: true
+  seed: 42
+  models_root: models
+  datasets_root: datasets
+  output_root: results
+  devices:
+  - cuda:0
+  parallelism: 1
+  batch_size: 1
+  worker_timeout_seconds: 86400
+workflow:
+  order:
+  - score
+  - summary
+tasks:
+  noul:
+    enabled: false
+    datasets: []
+  choice:
+    enabled: false
+    datasets: []
+  score:
+    enabled: true
+    model_ids:
+    - semif-logit-qwen3.5-4b
+    - semif-logit-fewshot-qwen3.5-4b-2shot-score
+    - qwen3.5-4b
+    - laya-multilingual-score
+    - openjev-0.8b
+    - openjev-4b-v2
+    - hopper-qwen3.5-4b-lora-score
+    - decider-4b-v2-score
+    - decider-4b-v2-2shot-score
+    - ruri-v3-310m-score
+    - modernbert-ja-310m
+    datasets:
+    - helpsteer_correctness
+    - helpsteer_helpfulness
+    - helpsteer_verbosity
+    - helpsteer_complexity
+    - helpsteer_coherence
+    aggregate_metric: normalized_quadratic_weighted_kappa
+    smoke_limit: 5
+    parallelism: 1
+    chart:
+      enabled: true
+      name: radar-helpsteer-series
+      title: HelpSteer2-JA Score evaluation
+      subtitle: Normalized quadratic weighted kappa
+      metric: normalized_quadratic_weighted_kappa
+      theme: dark
+      language: ja
+  summary:
+    enabled: true
+    weights:
+      score: 1.0
+models:
+- id: semif-logit-qwen3.5-4b
+  label: semif 0-shot (Qwen3.5-4B)
+  repo_id: Qwen/Qwen3.5-4B
+  revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  scorer: semif-logit
+  dtype: bfloat16
+  batch_size: 1
+- id: semif-logit-fewshot-qwen3.5-4b-2shot-score
+  label: semif 2-shot (Qwen3.5-4B)
+  repo_id: Qwen/Qwen3.5-4B
+  revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  scorer: semif-logit
+  primitive: score
+  few_shot_count: 2
+  dtype: bfloat16
+  batch_size: 1
+- id: qwen3.5-4b
+  label: semif-ja 0-shot (Qwen3.5-4B)
+  repo_id: Qwen/Qwen3.5-4B
+  revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  scorer: qwen-direct
+  dtype: bfloat16
+  batch_size: 1
+- id: laya-multilingual-score
+  label: laya multilingual
+  scorer: laya
+  primitive: score
+  checkpoint: multilingual
+- id: openjev-0.8b
+  label: AlexWortega_openjev 0.8B v2
+  repo_id: AlexWortega/openjev
+  scorer: nli-cross-encoder
+  subfolder: qwen3.5-0.8b-nli-v2s-long
+  trust_remote_code: true
+  template: ja
+  dtype: bfloat16
+  batch_size: 1
+- id: openjev-4b-v2
+  label: AlexWortega_openjev 4B v2
+  repo_id: AlexWortega/openjev
+  scorer: nli-cross-encoder
+  subfolder: qwen3.5-4b-nli-v2
+  trust_remote_code: true
+  template: ja
+  dtype: bfloat16
+  batch_size: 1
+- id: hopper-qwen3.5-4b-lora-score
+  label: Hopper (LoRA on Qwen3.5-4B)
+  repo_id: Qwen/Qwen3.5-4B
+  revision: 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+  adapter: HopitAI/hopper
+  scorer: hopper
+  primitive: score
+  dtype: bfloat16
+  batch_size: 1
+- id: decider-4b-v2-score
+  label: decider-4b v2
+  repo_id: Mapika/decider-4b
+  revision: v2
+  scorer: decider
+  primitive: score
+  dtype: bfloat16
+  batch_size: 1
+- id: decider-4b-v2-2shot-score
+  label: decider-4b v2 2-shot
+  repo_id: Mapika/decider-4b
+  revision: v2
+  scorer: decider
+  primitive: score
+  few_shot_count: 2
+  dtype: bfloat16
+  batch_size: 1
+- id: ruri-v3-310m-score
+  label: ruri-v3-310m (embedding)
+  repo_id: cl-nagoya/ruri-v3-310m
+  scorer: embedding
+  primitive: score
+  head_path: results/embedding_heads/ruri-v3-310m/score.pt
+  dtype: bfloat16
+  batch_size: 32
+- id: modernbert-ja-310m
+  label: modernbert-ja-310m
+  repo_id: sbintuitions/modernbert-ja-310m
+  revision: 77675fc96a7e445e982e2ba90246b816efc74ec6
+  dtype: bfloat16
+  batch_size: 32
+datasets:
+- expected_items: 2500
+  feature: 回答正確性・5段階
+  id: helpsteer_correctness
+  label: HelpSteer2 Correctness JA (benchmark-v1)
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    adapter: score
+    criteria:
+    - 不正確
+    - やや不正確
+    - 一部正確
+    - ほぼ正確
+    - 正確
+    format: parquet
+    gold_field: correctness
+    max_chars: 6000
+    path: helpsteer2_ja/benchmark-v1.parquet
+    prompt: 次の質問に対する回答の正確性を評価してください。
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+  task: score
+- expected_items: 2500
+  feature: 回答有用性・5段階
+  id: helpsteer_helpfulness
+  label: HelpSteer2 Helpfulness JA (benchmark-v1)
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    adapter: score
+    criteria:
+    - 役に立たない
+    - あまり役に立たない
+    - 一部役に立つ
+    - 役に立つ
+    - 非常に役に立つ
+    format: parquet
+    gold_field: helpfulness
+    max_chars: 6000
+    path: helpsteer2_ja/benchmark-v1.parquet
+    prompt: 次の質問に対する回答の有用性を評価してください。
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+  task: score
+- expected_items: 2500
+  feature: 回答詳細度・5段階
+  id: helpsteer_verbosity
+  label: HelpSteer2 Verbosity JA (benchmark-v1)
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    adapter: score
+    criteria:
+    - 非常に簡潔
+    - 簡潔
+    - 適度
+    - 詳細
+    - 非常に詳細
+    format: parquet
+    gold_field: verbosity
+    max_chars: 6000
+    path: helpsteer2_ja/benchmark-v1.parquet
+    prompt: 次の質問に対する回答の詳細度を評価してください。
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+  task: score
+- expected_items: 2500
+  feature: 回答複雑度・5段階
+  id: helpsteer_complexity
+  label: HelpSteer2 Complexity JA (benchmark-v1)
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    adapter: score
+    criteria:
+    - 非常に単純
+    - 単純
+    - 中程度
+    - 複雑
+    - 非常に複雑
+    format: parquet
+    gold_field: complexity
+    max_chars: 6000
+    path: helpsteer2_ja/benchmark-v1.parquet
+    prompt: 次の質問に対する回答の複雑度を評価してください。
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+  task: score
+- expected_items: 2500
+  feature: 回答一貫性・5段階
+  id: helpsteer_coherence
+  label: HelpSteer2 Coherence JA (benchmark-v1)
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    adapter: score
+    criteria:
+    - 一貫性なし
+    - 一貫性が低い
+    - 一部一貫
+    - ほぼ一貫
+    - 完全に一貫
+    format: parquet
+    gold_field: coherence
+    max_chars: 6000
+    path: helpsteer2_ja/benchmark-v1.parquet
+    prompt: 次の質問に対する回答の一貫性を評価してください。
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+  task: score

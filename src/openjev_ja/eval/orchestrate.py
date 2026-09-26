@@ -15,7 +15,10 @@ from openjev_ja.common import DatasetUnavailableError
 from openjev_ja.eval.local_data import load_local_benchmark
 from openjev_ja.eval.runner import run_evaluation
 from openjev_ja.methods.bert_masked_lm import MaskedLMScorer
+from openjev_ja.methods.decider import DeciderScorer
 from openjev_ja.methods.embedding import EmbeddingScorer
+from openjev_ja.methods.hopper import HopperScorer
+from openjev_ja.methods.hopper.scorer import BASE_REVISION as HOPPER_BASE_REVISION
 from openjev_ja.methods.jevlike import JevlikeScorer
 from openjev_ja.methods.laya import LayaScorer
 from openjev_ja.methods.laya_bert import LayaBertScorer
@@ -127,6 +130,38 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
             device=device,
             dtype=str(model.get("dtype", "bfloat16")),
             max_length=int(model.get("max_length", 1024)),
+        )
+    if scorer_name == "hopper":
+        if not model.get("primitive"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'hopper' requires 'primitive'"
+            )
+        return HopperScorer(
+            _model_reference(model, runtime),
+            primitive=str(model["primitive"]),
+            adapter=str(model.get("adapter", "HopitAI/hopper")),
+            device=device,
+            dtype=str(model.get("dtype", "bfloat16")),
+            revision=model.get("revision", HOPPER_BASE_REVISION),
+            adapter_revision=model.get("adapter_revision"),
+            model_id=str(model.get("model_id") or model.get("adapter") or "HopitAI/hopper"),
+            calibrate=bool(model.get("calibrate", True)),
+        )
+    if scorer_name == "decider":
+        if not model.get("primitive"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'decider' requires 'primitive'"
+            )
+        return DeciderScorer(
+            _model_reference(model, runtime),
+            primitive=str(model["primitive"]),
+            revision=str(model.get("revision", "v2")),
+            device=device,
+            dtype=str(model.get("dtype", "bfloat16")),
+            use_graphs=bool(model.get("use_graphs", False)),
+            model_id=model.get("model_id"),
+            few_shot_count=int(model.get("few_shot_count", 0)),
+            datasets_root=str(runtime["datasets_root"]),
         )
     if scorer_name == "semif-logit":
         few_shot_count = int(model.get("few_shot_count", 0))

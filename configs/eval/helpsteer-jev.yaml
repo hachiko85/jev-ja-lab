@@ -1,0 +1,172 @@
+version: 1
+runtime:
+  run_name: eval-helpsteer-jev
+  smoke_run_name: eval-helpsteer-jev-smoke
+  resume: true
+  seed: 42
+  models_root: models
+  datasets_root: datasets
+  output_root: results
+  devices:
+  - api:0
+  - api:1
+  - api:2
+  - api:3
+  parallelism: 4
+  batch_size: 1
+  worker_timeout_seconds: 86400
+workflow:
+  order:
+  - score
+  - summary
+tasks:
+  noul:
+    enabled: false
+    datasets: []
+  choice:
+    enabled: false
+    datasets: []
+  score:
+    enabled: true
+    model_ids:
+    - jev-latest
+    datasets:
+    - helpsteer_correctness
+    - helpsteer_helpfulness
+    - helpsteer_verbosity
+    - helpsteer_complexity
+    - helpsteer_coherence
+    aggregate_metric: normalized_quadratic_weighted_kappa
+    smoke_limit: 5
+    parallelism: 4
+    chart:
+      enabled: true
+      name: radar-helpsteer-jev
+      title: HelpSteer2-JA Score evaluation
+      subtitle: Normalized quadratic weighted kappa
+      metric: normalized_quadratic_weighted_kappa
+      theme: dark
+      language: ja
+  summary:
+    enabled: true
+    weights:
+      score: 1.0
+models:
+- id: jev-latest
+  label: Jev Latest
+  scorer: jev
+  model: jev-latest
+  batch_size: 1
+  timeout: 60
+  max_retries: 3
+datasets:
+- expected_items: 2500
+  feature: 回答正確性・5段階
+  id: helpsteer_correctness
+  label: HelpSteer2 Correctness JA (benchmark-v1)
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    adapter: score
+    criteria:
+    - 不正確
+    - やや不正確
+    - 一部正確
+    - ほぼ正確
+    - 正確
+    format: parquet
+    gold_field: correctness
+    max_chars: 6000
+    path: helpsteer2_ja/benchmark-v1.parquet
+    prompt: 次の質問に対する回答の正確性を評価してください。
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+  task: score
+- expected_items: 2500
+  feature: 回答有用性・5段階
+  id: helpsteer_helpfulness
+  label: HelpSteer2 Helpfulness JA (benchmark-v1)
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    adapter: score
+    criteria:
+    - 役に立たない
+    - あまり役に立たない
+    - 一部役に立つ
+    - 役に立つ
+    - 非常に役に立つ
+    format: parquet
+    gold_field: helpfulness
+    max_chars: 6000
+    path: helpsteer2_ja/benchmark-v1.parquet
+    prompt: 次の質問に対する回答の有用性を評価してください。
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+  task: score
+- expected_items: 2500
+  feature: 回答詳細度・5段階
+  id: helpsteer_verbosity
+  label: HelpSteer2 Verbosity JA (benchmark-v1)
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    adapter: score
+    criteria:
+    - 非常に簡潔
+    - 簡潔
+    - 適度
+    - 詳細
+    - 非常に詳細
+    format: parquet
+    gold_field: verbosity
+    max_chars: 6000
+    path: helpsteer2_ja/benchmark-v1.parquet
+    prompt: 次の質問に対する回答の詳細度を評価してください。
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+  task: score
+- expected_items: 2500
+  feature: 回答複雑度・5段階
+  id: helpsteer_complexity
+  label: HelpSteer2 Complexity JA (benchmark-v1)
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    adapter: score
+    criteria:
+    - 非常に単純
+    - 単純
+    - 中程度
+    - 複雑
+    - 非常に複雑
+    format: parquet
+    gold_field: complexity
+    max_chars: 6000
+    path: helpsteer2_ja/benchmark-v1.parquet
+    prompt: 次の質問に対する回答の複雑度を評価してください。
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+  task: score
+- expected_items: 2500
+  feature: 回答一貫性・5段階
+  id: helpsteer_coherence
+  label: HelpSteer2 Coherence JA (benchmark-v1)
+  revision: ea432e41ac690821953c38f77be9690c9c19cd9f
+  source:
+    adapter: score
+    criteria:
+    - 一貫性なし
+    - 一貫性が低い
+    - 一部一貫
+    - ほぼ一貫
+    - 完全に一貫
+    format: parquet
+    gold_field: coherence
+    max_chars: 6000
+    path: helpsteer2_ja/benchmark-v1.parquet
+    prompt: 次の質問に対する回答の一貫性を評価してください。
+    question_template: '質問: {prompt_ja}
+
+      回答: {response_ja}'
+  task: score
