@@ -54,7 +54,7 @@ def _cell(text: object) -> str:
 
 def dataset_table(manifest: dict) -> str:
     lines = [
-        "| 名称 | 詳細 | タスク | 配布元(リンク) | 使用split | ライセンス | 件数 |",
+        "| Name | Description | Task | Source | Split used | License | Rows |",
         "|---|---|---|---|---|---|---:|",
     ]
     for entry in manifest["datasets"]:
@@ -94,6 +94,7 @@ def render_readme(manifest: dict) -> str:
         )
         for e in manifest["datasets"] + manifest["excluded"]
     )
+    usage = (ROOT / "datasets_router" / "usage.md").read_text(encoding="utf-8").strip()
     return f"""---
 license: {manifest['license']}
 language:
@@ -123,7 +124,9 @@ configs:
 
 # openjev-ja-eval
 
-## アブストラクト
+> Japanese evaluation datasets for Noul / Choice / Score decision models: a router, not a mirror
+
+## What is this?
 
 [jev-ja-lab](https://github.com/hachiko85/jev-ja-lab) で日本語の判断モデルを評価するための
 データセット集です。判断タスクを Noul(二値判定)・Choice(選択式)・Score(段階評価)の
@@ -134,9 +137,9 @@ configs:
 本リポジトリ内で管理するのは、独自に作成した `synthetic_score` と、評価用に抽出した
 HelpSteer2-JA(`helpsteer2_ja`、benchmark-v1)のみです。
 
-## サブセット
+## Subsets
 
-| サブセット | 内容 | split | 含まれるデータセット |
+| Subset | Description | Split | Datasets |
 |---|---|---|---|
 {subsets}
 
@@ -145,31 +148,17 @@ HelpSteer2-JA(`helpsteer2_ja`、benchmark-v1)のみです。
 `load_dataset` で各サブセットを開くと、そのサブセットに含まれるデータセットの配布元一覧が
 `test` split として返ります(データ本体は次節の手順で取得します)。
 
-## データセット一覧
+## Datasets
 
 {dataset_table(manifest)}
 
-再配布禁止・別途承認が必要なため対象外としたデータセット:
+Not routed (redistribution prohibited or separate approval required):
 
 {excluded}
 
-## 使い方
+{usage}
 
-```bash
-pip install huggingface_hub datasets pyarrow
-
-# 一覧(サブセット: noul / choice / score / all)
-python openjev_ja_eval.py list --subset noul
-
-# 取得: 各配布元から直接ダウンロードし、jev-ja-lab の datasets/ 配置で保存
-python openjev_ja_eval.py fetch --subset all --datasets-root ./datasets
-```
-
-`openjev_ja_eval.py` は本リポジトリに含まれます。jev-ja-lab 本体では
-`jev-ja-lab-datasets list|fetch` として利用できます。リポジトリが private の間は `HF_TOKEN` が
-必要です。JGPQA など要承認のデータセットは `--include-gated` と自分のトークンで取得します。
-
-## ライセンス
+## Licensing Information
 
 本リポジトリは **{manifest['license_label']}** で配布します。収録データセットが継承するライセンスの
 うち最も厳しいものを採用しており、該当するのは **JMMLU と WRIME**(いずれも CC BY-NC-ND 4.0)です。
@@ -193,13 +182,13 @@ python openjev_ja_eval.py fetch --subset all --datasets-root ./datasets
 - 上記は各配布元のカード・リポジトリの記載に基づく整理であり、法的助言ではありません。
   再配布・商用利用の前に、各配布元の原文を必ず確認してください。
 
-## 謝辞
+## Acknowledgements
 
 評価データを公開されている各データセットの作成者・配布者の皆様に感謝します。
 また、HelpSteer2 を公開した NVIDIA、日本語訳 HelpSteer2-20k-ja を公開した kunishou 氏に
 感謝します。
 
-## 引用先
+## Citation Information
 
 利用時は、各データセットの配布元に記載された引用方法に従ってください。
 
