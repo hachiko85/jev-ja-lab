@@ -93,6 +93,25 @@ uv run jev-ja-lab-eval-workflow \
 
 LLM-jp Toxicity属性別、Civil Comments全件、JSFactCheckBenchの定義とadapterも実装済みです。標準実行では処理時間または認証要件を理由に無効化しています。`tasks.<primitive>.datasets` へIDを戻すと追加評価できます。
 
+## データセットの取得(openjev-ja-evalルーター)
+
+評価データは、Hugging Face Hubの`hachiko85/openjev-ja-eval`を経由して取得します。このリポジトリは
+サードパーティのデータを再配布せず、各データセットの配布元・revision・split・ライセンスを記した
+`manifest.json`(コピー: `datasets_router/manifest.json`)と取得クライアントだけを持つルーターで、
+取得時に各配布元(Hugging Face Hub / GitHub)から直接ダウンロードします。独自データ
+(`synthetic_score`、抽出したHelpSteer2-JA benchmark-v1)のみ同リポジトリ内で管理します。
+
+```bash
+# サブセット: noul / choice / score / all(split=test)
+uv run jev-ja-lab-datasets list --subset all
+uv run jev-ja-lab-datasets fetch --subset all --datasets-root ./datasets
+```
+
+再配布禁止・要承認のデータ(JGPQA)はルーター対象外で、`--include-gated`と自分のHFトークンで
+のみ取得を試みます。データセット名・詳細・リンク・使用split・ライセンスの一覧は
+[`datasets_router/README.md`](datasets_router/README.md)(Hub上のカードと同じ)を参照してください。
+ルーターの更新は`scripts/publish_dataset_router.py`(`--dry-run`で差分確認)で行います。
+
 ## 評価結果(手法比較、2026-09-26時点)
 
 同一の判断タスク(Noul/Choice/Score、全30データセット共通)を、判定原理が異なる11手法

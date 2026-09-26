@@ -34,6 +34,7 @@ tasks:
     - openjev-4b-v2
     - hopper-qwen3.5-4b-lora-score
     - decider-4b-v2-score
+    - decider-4b-v2-2shot-score
     - ruri-v3-310m-score
     - modernbert-ja-310m
     datasets:
@@ -119,6 +120,15 @@ models:
   revision: v2
   scorer: decider
   primitive: score
+  dtype: bfloat16
+  batch_size: 1
+- id: decider-4b-v2-2shot-score
+  label: decider-4b v2 2-shot
+  repo_id: Mapika/decider-4b
+  revision: v2
+  scorer: decider
+  primitive: score
+  few_shot_count: 2
   dtype: bfloat16
   batch_size: 1
 - id: ruri-v3-310m-score

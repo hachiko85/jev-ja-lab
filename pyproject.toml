@@ -55,6 +55,7 @@ dev = [
 
 [project.scripts]
 jev-ja-lab-eval = "openjev_ja.eval.cli:main"
+jev-ja-lab-datasets = "openjev_ja.datasets_router:main"
 jev-ja-lab-radar = "openjev_ja.visualize.cli:main"
 jev-ja-lab-orchestrate = "openjev_ja.eval.orchestrate_cli:main"
 jev-ja-lab-eval-noul = "openjev_ja.eval.eval_noul:main"

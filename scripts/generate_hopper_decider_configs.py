@@ -45,6 +45,19 @@ SERIES = {
             "dtype": "bfloat16",
         },
     },
+    "decider-fewshot": {
+        "run_name": "eval-decider-fewshot-series",
+        "model_id": "decider-4b-v2-2shot",
+        "label": "decider-4b v2 2-shot",
+        "color": "#bcbd22",
+        "entry": {
+            "repo_id": "Mapika/decider-4b",
+            "revision": "v2",
+            "scorer": "decider",
+            "few_shot_count": 2,
+            "dtype": "bfloat16",
+        },
+    },
 }
 
 

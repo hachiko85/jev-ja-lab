@@ -160,6 +160,8 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
             dtype=str(model.get("dtype", "bfloat16")),
             use_graphs=bool(model.get("use_graphs", False)),
             model_id=model.get("model_id"),
+            few_shot_count=int(model.get("few_shot_count", 0)),
+            datasets_root=str(runtime["datasets_root"]),
         )
     if scorer_name == "semif-logit":
         few_shot_count = int(model.get("few_shot_count", 0))

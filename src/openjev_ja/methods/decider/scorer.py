@@ -31,6 +31,30 @@ def build_questions(primitive: str, question: str, options: list[str]) -> tuple[
     raise ValueError(f"unsupported primitive: {primitive}")
 
 
+FewShotExample = tuple[str, list[str], int]
+
+
+def format_few_shot(primitive: str, examples: list[FewShotExample], state: Any) -> str:
+    """Worked examples placed in front of the case, inside the /v1/systemone `state`.
+
+    decider has no few-shot mode of its own (it is trained on a bare state + typed
+    questions), so in-context examples are supplied the only way the wire format allows:
+    as more state text. Each example shows its question and the gold answer's text;
+    for noul the instruction itself is the question, so the case marker only points at it.
+    """
+    blocks = ["以下は同じ形式の判定の解答例です。"]
+    for number, (example_question, example_options, gold) in enumerate(examples, 1):
+        block = [f"[例{number}]", example_question]
+        if primitive != "noul":
+            listed = " / ".join(f"{i}: {option}" for i, option in enumerate(example_options))
+            block.append(f"選択肢: {listed}")
+        block.append(f"正解: {example_options[gold]}")
+        blocks.append("\n".join(block))
+    target = str(state) if state else "以下の質問に、上と同じ基準で答えてください。"
+    blocks.append(f"[判定対象]\n{target}")
+    return "\n\n".join(blocks)
+
+
 def parse_answer(primitive: str, answer: dict, count: int) -> tuple[list[float], list[float], int]:
     """(scores, probabilities, predicted_index) from one system_one answer."""
     if primitive == "noul":
@@ -54,6 +78,9 @@ class DeciderScorer:
     `revision` selects the Hub tag: "v2" (decider-4b v2, one global temperature 1.935),
     "main" (v2.1, per-type temperatures), or "v1". The package loads a local folder, so
     the revision is snapshot-downloaded first.
+
+    `few_shot_count` > 0 (with `datasets_root`) prepends that many worked examples to the
+    state — an experiment, not a supported mode of the model; see `format_few_shot`.
     """
 
     name = "decider"
@@ -68,6 +95,9 @@ class DeciderScorer:
         dtype: str = "bfloat16",
         use_graphs: bool = False,
         model_id: str | None = None,
+        few_shot_count: int = 0,
+        datasets_root: str | None = None,
+        few_shot_seed: int = 42,
     ) -> None:
         if primitive not in PRIMITIVES:
             raise ValueError(f"unsupported primitive: {primitive}")
@@ -84,6 +114,16 @@ class DeciderScorer:
         self.dtype = dtype
         self.model_id = model_id or f"{model_name}@{revision}"
         self.use_graphs = use_graphs
+        self.few_shot: list[FewShotExample] = []
+        if few_shot_count:
+            if datasets_root is None:
+                raise ValueError("few_shot_count requires datasets_root")
+            from openjev_ja.methods.semif_logit.examples import load_few_shot_examples
+
+            # Same per-primitive train examples semif's few-shot uses, so 2-shot is comparable.
+            self.few_shot = load_few_shot_examples(
+                primitive, datasets_root, few_shot_count, seed=few_shot_seed
+            )
         folder = snapshot_download(model_name, revision=revision)
         self.decider = Decider(
             folder, device=device, dtype=getattr(torch, dtype), use_graphs=use_graphs
@@ -92,6 +132,8 @@ class DeciderScorer:
 
     def score(self, question: str, options: list[str]) -> ScoreResult:
         state, questions = build_questions(self.primitive, question, options)
+        if self.few_shot:
+            state = format_few_shot(self.primitive, self.few_shot, state)
         started = time.perf_counter()
         response = self.decider.system_one(state, questions)
         latency_ms = (time.perf_counter() - started) * 1000
@@ -120,5 +162,6 @@ class DeciderScorer:
             "dtype": self.dtype,
             "device": self.device,
             "use_graphs": self.use_graphs,
+            "few_shot_count": len(self.few_shot),
             "generation": False,
         }

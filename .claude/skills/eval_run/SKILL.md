@@ -26,6 +26,9 @@ description: 指定したモデル・手法(scorer)・データセットでベ�
 `jev-ja-lab-eval`のCLIが直接サポートしない手法(embedding/laya/jevlike/laya-bert/
 semif-logit/hopper/decider系)は、`configs/eval/*.yaml`をベースにしたorchestration経由でのみ実行できる。
 
+評価データが手元に無い場合は先に`uv run jev-ja-lab-datasets fetch --subset <noul|choice|score|all>
+--datasets-root ./datasets`で取得する(`hachiko85/openjev-ja-eval`のルーター経由、各配布元から直接取得)。
+
 ## パターンA: 単発実行(1モデル・数データセット、素早く試したい)
 
 ```bash

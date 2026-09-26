@@ -1,0 +1,330 @@
+{
+  "version": 1,
+  "name": "openjev-ja-eval",
+  "repo_id": "hachiko85/openjev-ja-eval",
+  "split": "test",
+  "license": "cc-by-nc-nd-4.0",
+  "license_label": "CC BY-NC-ND 4.0",
+  "license_note": "配布ライセンスは、収録データセットが継承するライセンスのうち最も厳しいもの(JMMLU・WRIMEの CC BY-NC-ND 4.0)。サードパーティのデータ本体はこのリポジトリに保存せず、取得時に各配布元から直接ダウンロードするため、各データセット自体の利用条件は配布元のものが適用される。",
+  "subsets": {
+    "noul": ["janli", "jcola", "paws_x_ja", "textdetox_ja", "jad_afc", "jnli", "wrime"],
+    "choice": ["mmmlu_ja", "jmmlu", "jcommonsenseqa", "xwinograd_ja", "mgsm_ja", "gsm8k_ja", "jnli"],
+    "score": ["wrime", "synthetic_score", "helpsteer2_ja_benchmark_v1"],
+    "all": [
+      "mmmlu_ja", "jmmlu", "jcommonsenseqa", "xwinograd_ja", "mgsm_ja", "gsm8k_ja", "jnli",
+      "janli", "jcola", "paws_x_ja", "textdetox_ja", "jad_afc", "wrime",
+      "synthetic_score", "helpsteer2_ja_benchmark_v1"
+    ]
+  },
+  "datasets": [
+    {
+      "id": "mmmlu_ja",
+      "title": "MMMLU (JA_JP)",
+      "description": "OpenAIが公開するMMLUの多言語版のうち日本語(JA_JP)。57科目の4択知識問題。",
+      "tasks": ["choice"],
+      "source": {
+        "kind": "hf_dataset",
+        "repo_id": "openai/MMMLU",
+        "config": "JA_JP",
+        "split": "test",
+        "revision": "325a01dc3e173cac1578df94120499aaca2e2504"
+      },
+      "url": "https://huggingface.co/datasets/openai/MMMLU",
+      "license": "MIT",
+      "rows": 14042,
+      "access": "open",
+      "profile_datasets": ["mmmlu_ja"]
+    },
+    {
+      "id": "jmmlu",
+      "title": "JMMLU",
+      "description": "MMLUの日本語翻訳・日本固有問題を含む4択知識問題(全科目)。",
+      "tasks": ["choice"],
+      "source": {
+        "kind": "hf_snapshot",
+        "repo_id": "nlp-waseda/JMMLU",
+        "split": "test",
+        "revision": "3637b25e444ccfdcde4d23a783cbe8e674faa01b"
+      },
+      "url": "https://huggingface.co/datasets/nlp-waseda/JMMLU",
+      "license": "CC BY-NC-ND 4.0",
+      "rows": 7536,
+      "access": "open",
+      "profile_datasets": ["jmmlu"]
+    },
+    {
+      "id": "jcommonsenseqa",
+      "title": "JCommonsenseQA",
+      "description": "JGLUEの日本語常識推論5択。JGLUEのtestはラベル非公開のためvalidationを評価に使用。",
+      "tasks": ["choice"],
+      "source": {
+        "kind": "hf_dataset",
+        "repo_id": "sbintuitions/JCommonsenseQA",
+        "config": "default",
+        "split": "validation",
+        "revision": "b72d3115609bed00c386701fcb40234a1fd08c7a"
+      },
+      "url": "https://huggingface.co/datasets/sbintuitions/JCommonsenseQA",
+      "license": "CC BY-SA 4.0",
+      "rows": 1119,
+      "access": "open",
+      "profile_datasets": ["jcommonsenseqa"]
+    },
+    {
+      "id": "xwinograd_ja",
+      "title": "XWinograd (ja)",
+      "description": "多言語Winograd Schema Challengeの日本語(jp)。文脈・照応解析の2択。",
+      "tasks": ["choice"],
+      "source": {
+        "kind": "hf_dataset",
+        "repo_id": "Muennighoff/xwinograd",
+        "config": "jp",
+        "split": "test",
+        "revision": "90b619ef5278605cd4f572e3e8506ab16afd44f2"
+      },
+      "url": "https://huggingface.co/datasets/Muennighoff/xwinograd",
+      "license": "CC BY 4.0",
+      "rows": 959,
+      "access": "open",
+      "profile_datasets": ["xwinograd_ja"]
+    },
+    {
+      "id": "mgsm_ja",
+      "title": "MGSM (ja)",
+      "description": "GSM8Kを多言語化した数学文章題の日本語版。評価では選択式に変換して使用。",
+      "tasks": ["choice"],
+      "source": {
+        "kind": "hf_dataset",
+        "repo_id": "jbross-ibm-research/mgsm",
+        "config": "ja",
+        "split": "test",
+        "revision": "bd4f2be4127dc3d568a7a1ab13a07ceb921afff3"
+      },
+      "url": "https://huggingface.co/datasets/jbross-ibm-research/mgsm",
+      "license": "CC BY-SA 4.0",
+      "rows": 250,
+      "access": "open",
+      "profile_datasets": ["mgsm_ja"]
+    },
+    {
+      "id": "gsm8k_ja",
+      "title": "GSM8K-JA (test 250-1319)",
+      "description": "SakanaAIによるGSM8Kの日本語テスト分割(250〜1319件目)。評価では4択(mc4)と10択(mc10)に変換して使用。",
+      "tasks": ["choice"],
+      "source": {
+        "kind": "hf_dataset",
+        "repo_id": "SakanaAI/gsm8k-ja-test_250-1319",
+        "config": "default",
+        "split": "test",
+        "revision": "964859c892f49b8ec5b4b6dd2401169739c7458d"
+      },
+      "url": "https://huggingface.co/datasets/SakanaAI/gsm8k-ja-test_250-1319",
+      "license": "Apache-2.0",
+      "rows": 1069,
+      "access": "open",
+      "profile_datasets": ["gsm8k_ja_mc4", "gsm8k_ja_mc10"]
+    },
+    {
+      "id": "jnli",
+      "title": "JNLI (JGLUE v1.1.0)",
+      "description": "JGLUEの日本語自然言語推論(含意・矛盾・中立の3値)。Choiceとして3択、Noulとして各ラベルの二値判定に使用。testはラベル非公開のためvalidを評価に使用。",
+      "tasks": ["noul", "choice"],
+      "source": {
+        "kind": "git",
+        "url": "https://github.com/yahoojapan/JGLUE.git",
+        "target": "JGLUE-v1.1.0",
+        "path": "datasets/jnli-v1.1/valid-v1.1.json",
+        "split": "valid",
+        "revision": "6791a5003e6deaa6fb2458bcb3aa1f58dc52ef33"
+      },
+      "url": "https://github.com/yahoojapan/JGLUE",
+      "license": "CC BY-SA 4.0",
+      "rows": 2434,
+      "access": "open",
+      "profile_datasets": ["jnli", "jnli_entailment", "jnli_contradiction", "jnli_missing_evidence"]
+    },
+    {
+      "id": "wrime",
+      "title": "WRIME ver2",
+      "description": "文の書き手・読み手の感情強度アノテーション付きSNSコーパス。Scoreとして読み手の喜び・怒り・感情極性の強度、Noulとして二値化した判定に使用。再配布に制限があるため本リポジトリには保存しない。",
+      "tasks": ["noul", "score"],
+      "source": {
+        "kind": "git",
+        "url": "https://github.com/ids-cv/wrime.git",
+        "target": "wrime-official",
+        "path": "wrime-ver2.tsv",
+        "split": "test",
+        "revision": "ac92deaff7845f31fdd46ef5d893300887006d13"
+      },
+      "url": "https://github.com/ids-cv/wrime",
+      "license": "CC BY-NC-ND 4.0",
+      "rows": 2500,
+      "access": "open",
+      "profile_datasets": [
+        "wrime_joy", "wrime_anger", "wrime_sentiment",
+        "wrime_joy_binary", "wrime_anger_binary", "wrime_positive_binary"
+      ]
+    },
+    {
+      "id": "janli",
+      "title": "JaNLI",
+      "description": "語順・言い換えなど日本語特有の現象に絞った敵対的NLI。含意判定(Noul)に使用。",
+      "tasks": ["noul"],
+      "source": {
+        "kind": "hf_parquet",
+        "repo_id": "hpprc/janli",
+        "config": "base",
+        "split": "test",
+        "revision": "b91923216e61ded52ec77316cb329b47227e4955",
+        "target": "openjev-extra/janli"
+      },
+      "url": "https://huggingface.co/datasets/hpprc/janli",
+      "license": "CC BY-SA 4.0",
+      "rows": 720,
+      "access": "open",
+      "profile_datasets": ["janli_entailment"]
+    },
+    {
+      "id": "jcola",
+      "title": "JCoLA",
+      "description": "日本語の文法容認性判断。既知構文(in-domain)と未知構文(out-of-domain)のvalidを使用。",
+      "tasks": ["noul"],
+      "source": {
+        "kind": "git",
+        "url": "https://github.com/osekilab/JCoLA.git",
+        "target": "openjev-extra/jcola",
+        "path": "data/jcola-v1.0/in_domain_valid-v1.0.tsv, data/jcola-v1.0/out_of_domain_valid-v1.0.tsv",
+        "split": "valid",
+        "revision": "736d9eef3af04bb17e4cf59adf01325973234ff9"
+      },
+      "url": "https://github.com/osekilab/JCoLA",
+      "license": "CC BY-SA 4.0",
+      "rows": 1550,
+      "access": "open",
+      "profile_datasets": ["jcola_in_domain", "jcola_out_of_domain"]
+    },
+    {
+      "id": "paws_x_ja",
+      "title": "PAWS-X (ja)",
+      "description": "語順を入れ替えた敵対的な言い換え判定の多言語版、日本語(ja)。2文が同じ意味かの二値判定(Noul)。",
+      "tasks": ["noul"],
+      "source": {
+        "kind": "hf_parquet",
+        "repo_id": "google-research-datasets/paws-x",
+        "config": "ja",
+        "split": "test",
+        "revision": "4cd8187c404bda33cb1f62b49b001115862acf37",
+        "target": "openjev-extra/paws_x_ja"
+      },
+      "url": "https://huggingface.co/datasets/google-research-datasets/paws-x",
+      "license": "other (PAWS-X の利用条件に従う)",
+      "rows": 2000,
+      "access": "open",
+      "profile_datasets": ["paws_x_ja"]
+    },
+    {
+      "id": "textdetox_ja",
+      "title": "TextDetox multilingual toxicity (ja)",
+      "description": "多言語有害表現データセットの日本語部分。有害表現検出の二値判定(Noul)。日本語は言語名のsplit(ja)のみでtrain/testの区別はない。",
+      "tasks": ["noul"],
+      "source": {
+        "kind": "hf_parquet",
+        "repo_id": "textdetox/multilingual_toxicity_dataset",
+        "config": null,
+        "split": "ja",
+        "revision": "01907546324b0330d2d8b7669648cc18823323e5",
+        "target": "openjev-extra/textdetox_ja"
+      },
+      "url": "https://huggingface.co/datasets/textdetox/multilingual_toxicity_dataset",
+      "license": "OpenRAIL++",
+      "rows": 5000,
+      "access": "open",
+      "profile_datasets": ["textdetox_ja"]
+    },
+    {
+      "id": "jad_afc",
+      "title": "JAD-AFC",
+      "description": "富士通研究所の日本語ファクトチェック用データセット。真・偽・情報不足(NEI)の3種をそれぞれNoulの二値判定に使用。split区分なし(CSV1枚)。",
+      "tasks": ["noul"],
+      "source": {
+        "kind": "git",
+        "url": "https://github.com/FujitsuResearch/japanese-dataset-for-automated-fact-checking.git",
+        "target": "openjev-extra/jad-afc",
+        "path": "data/japanese-dataset-for-automated-fact-checking.csv",
+        "split": null,
+        "revision": "c2a84f80dd64f28122a4c8d4bd2aeab558355921"
+      },
+      "url": "https://github.com/FujitsuResearch/japanese-dataset-for-automated-fact-checking",
+      "license": "Apache-2.0",
+      "rows": 612,
+      "access": "open",
+      "profile_datasets": ["jad_afc_true", "jad_afc_false", "jad_afc_nei"]
+    },
+    {
+      "id": "synthetic_score",
+      "title": "Synthetic Score (独自)",
+      "description": "緊急度・不満度・リスク・関連度の4軸を、決定的テンプレート(seed=42)で生成した5段階Score。1軸200件、計800件。",
+      "tasks": ["score"],
+      "source": {
+        "kind": "own",
+        "path": "synthetic_score",
+        "target": "openjev-extra/synthetic_score",
+        "split": "test",
+        "revision": "deterministic-v1"
+      },
+      "url": "https://huggingface.co/datasets/hachiko85/openjev-ja-eval/tree/main/synthetic_score",
+      "license": "MIT",
+      "rows": 800,
+      "access": "open",
+      "profile_datasets": [
+        "synthetic_urgency", "synthetic_dissatisfaction", "synthetic_risk", "synthetic_relevance"
+      ]
+    },
+    {
+      "id": "helpsteer2_ja_benchmark_v1",
+      "title": "HelpSteer2-JA benchmark-v1 (抽出サブセット)",
+      "description": "kunishou/HelpSteer2-20k-ja(19,958行)からprompt単位で重複なしに2,500件を抽出(seed=42、sha256順)。正確性・有用性・詳細度・複雑さ・一貫性の5軸(各0〜4)のScore。抽出手順と件数は同梱のbenchmark-v1.manifest.json参照。",
+      "tasks": ["score"],
+      "source": {
+        "kind": "own",
+        "path": "helpsteer2_ja",
+        "target": "helpsteer2_ja",
+        "split": "test",
+        "revision": "benchmark-v1",
+        "derived_from": {
+          "repo_id": "kunishou/HelpSteer2-20k-ja",
+          "split": "train",
+          "revision": "ea432e41ac690821953c38f77be9690c9c19cd9f",
+          "original": "nvidia/HelpSteer2"
+        }
+      },
+      "url": "https://huggingface.co/datasets/kunishou/HelpSteer2-20k-ja",
+      "license": "CC BY 4.0",
+      "rows": 2500,
+      "access": "open",
+      "profile_datasets": [
+        "helpsteer_correctness", "helpsteer_helpfulness", "helpsteer_verbosity",
+        "helpsteer_complexity", "helpsteer_coherence"
+      ]
+    }
+  ],
+  "excluded": [
+    {
+      "id": "jgpqa_diamond",
+      "title": "JGPQA (diamond)",
+      "tasks": ["choice"],
+      "source": {
+        "kind": "hf_snapshot",
+        "repo_id": "llm-jp/jgpqa",
+        "split": "test",
+        "revision": null
+      },
+      "url": "https://huggingface.co/datasets/llm-jp/jgpqa",
+      "license": "CC BY 4.0",
+      "rows": 198,
+      "access": "gated",
+      "reason": "配布元で利用規約への同意とHugging Faceトークンが必要なため、ルーターのサブセットには含めない。--include-gated指定時のみ、利用者自身のトークンで取得を試みる。",
+      "profile_datasets": ["jgpqa_diamond"]
+    }
+  ]
+}
