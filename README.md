@@ -1,29 +1,27 @@
 # jev-ja-lab
 
-日本語データセットをJevの3 Primitiveへ変換し、ローカルまたはHugging Face Hub上の判断モデルを同一条件で比較する評価基盤です。
+日本語データセットを Jev の 3 Primitive に変換し、ローカルまたは Hugging Face Hub 上の判断モデル(ライブラリ)を
+同一条件で比較する評価基盤です。文章を生成させず、「判断」だけを返させて評価します。
 
 - `Noul`: Yes / No の二値判断
-- `Choice`: 複数候補から1つを選択
+- `Choice`: 複数候補から 1 つを選択
 - `Score`: 順序付き尺度のスコアリング
 
-現フェーズは評価基盤です。モデル学習機能は含みません。
+評価データは Hugging Face の [hachiko85/openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) に
+まとめています。
 
-## ドキュメント
+## ニュース
 
-- 評価設定・YAML・実行方法: `how_to_use.md`
-- 別PCへのZIP移行: `MIGRATION.md`
-- Primitive設計: `EVALUATION_PRIMITIVES.md`
-- 今回の実行条件と結果: `EVAL_JEV_20260918.md`
-- 実行設定: `configs/eval/primitives.20260918.yaml`
+- **2026-09-26** 評価データセット [openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) を整備
+  (11 件を収録、それ以外は配布元から取得)。HelpSteer2-JA を追加の Score 指標として追加。**decider-4b v2** と
+  **Hopper** を評価対象に追加。
+- **2026-09-23** Jev v1.13.0 / semif / semif-ja / laya / AlexWortega_openjev / BERT の比較評価(30 データセット、
+  62,884 件)を公開。
+- **2026-09-18** next-token logit 方式によるベースモデル 12 種の比較評価(`EVAL_JEV_20260918.md`)。
 
-## 必要環境
+## インストール
 
-- Python 3.11以上
-- NVIDIA GPUを使う場合: 対応ドライバとCUDA対応PyTorch
-- Hubモデル・データセットを取得する場合: インターネット接続
-- gatedリポジトリを使う場合: 配布元での利用規約同意と `HF_TOKEN`
-
-## 最短セットアップ
+必要環境: Python 3.11 以上。GPU を使う場合は対応ドライバと CUDA 対応 PyTorch。
 
 ### uv
 
@@ -32,171 +30,139 @@ uv sync --extra eval --extra viz --extra orchestrate --extra dev
 uv run pytest
 ```
 
-### Python仮想環境
-
-Linux/macOS:
+### Python 仮想環境
 
 ```bash
 python -m venv .venv
-source .venv/bin/activate
-python -m pip install -U pip
+source .venv/bin/activate              # Windows: .venv\Scripts\Activate.ps1
 pip install -e ".[eval,viz,orchestrate,dev]"
 pytest
 ```
 
-Windows PowerShell:
-
-```powershell
-py -3.11 -m venv .venv
-.venv\Scripts\Activate.ps1
-python -m pip install -U pip
-pip install -e ".[eval,viz,orchestrate,dev]"
-pytest
-```
-
-## 最短実行
-
-GPU不要の動作確認:
+ライブラリ別の追加インストール:
 
 ```bash
-uv run jev-ja-lab-eval --dataset mmmlu_ja --scorer mock --limit 5
+pip install -e ".[hopper]"             # Hopper(peft)
+pip install --no-deps decider-ai       # decider-4b(numpy固定を避けるため --no-deps)
+pip install -e ".[laya]"               # laya
 ```
 
-YAML全体のsmoke評価:
+## クイックスタート
 
 ```bash
-uv run jev-ja-lab-eval-workflow \
-  --config configs/eval/primitives.20260918.yaml \
-  --phase smoke
-```
-
-本番評価:
-
-```bash
-uv run jev-ja-lab-eval-workflow \
-  --config configs/eval/primitives.20260918.yaml \
-  --phase production
-```
-
-`pip install -e ...` を使った環境では、先頭の `uv run` を外して実行できます。
-
-## 標準評価プロファイル
-
-標準設定は、全モデルを短時間で比較する30軸プロファイルです。
-
-| Primitive | 軸数 | 1モデル当たり評価数 |
-|---|---:|---:|
-| Noul | 14 | 25,908 |
-| Choice | 9 | 28,676 |
-| Score | 7 | 8,300 |
-| 合計 | 30 | 62,884 |
-
-LLM-jp Toxicity属性別、Civil Comments全件、JSFactCheckBenchの定義とadapterも実装済みです。標準実行では処理時間または認証要件を理由に無効化しています。`tasks.<primitive>.datasets` へIDを戻すと追加評価できます。
-
-## データセットの取得(openjev-ja-eval)
-
-評価データは、Hugging Face Hubの`hachiko85/openjev-ja-eval`から取得します。MIT・Apache-2.0・CC BY・
-CC BY-SA 4.0のデータセット(11件)は共通形式でリポジトリに収録し(集合物としてCC BY-SA 4.0)、
-それ以外(JMMLU・WRIME・PAWS-X・TextDetox、要承認のJGPQA)は再配布せず、`manifest.json`
-(コピー: `datasets_router/manifest.json`)に記録した配布元から直接ダウンロードするルーターで扱います。
-
-```python
-from datasets import load_dataset
-
-noul = load_dataset("hachiko85/openjev-ja-eval", "noul", split="test")  # noul / choice / score / all
-```
-
-```bash
-# 評価用に datasets/ 配置で取得(全データセットを配布元から。サブセット: noul / choice / score / all)
-uv run jev-ja-lab-datasets list --subset all
+# 1. 評価データを取得(サブセット: noul / choice / score / all)
 uv run jev-ja-lab-datasets fetch --subset all --datasets-root ./datasets
+
+# 2. GPU不要の動作確認
+uv run jev-ja-lab-eval --dataset mmmlu_ja --scorer mock --limit 5
+
+# 3. ライブラリを指定して評価(smoke → production)
+uv run jev-ja-lab-eval-workflow --config configs/eval/decider-series.yaml --phase smoke
+uv run jev-ja-lab-eval-workflow --config configs/eval/decider-series.yaml --phase production
 ```
 
-収録データの各行には、`primitive`(Noul / Choice / Score)と出典データセット名(`source_dataset`)が
-入ります。データセット名・詳細・リンク・使用split・ライセンスの一覧は
-[`datasets_router/README.md`](datasets_router/README.md)(Hub上のカードと同じ)を参照してください。
-更新は`scripts/build_dataset_mirror.py`(収録データの生成)と`scripts/publish_dataset_router.py`
-(`--dry-run`で差分確認)で行います。
+評価設定は `configs/eval/` にライブラリごとに用意しています(`decider-series.yaml`、`hopper-series.yaml`、
+`semif-logit-series.yaml`、`openjev-series.yaml`、`laya-series.yaml`、`bert-series.yaml`、
+`helpsteer-series.yaml` など)。`pip install -e ...` の環境では先頭の `uv run` を外して実行できます。
+Jev API を評価する場合は `.env` に `TYPESAFE_API_KEY` / `TYPESAFE_API_URL` を設定してください。
+詳細は `how_to_use.md`、Primitive の設計は `EVALUATION_PRIMITIVES.md` を参照してください。
 
-## 評価結果(ライブラリ比較、2026-09-26時点)
+## 評価
 
-同一の判断タスク(Noul/Choice/Score、全30データセット共通)を、判定原理が異なる8ライブラリ
-(TypeSafe Jev API、decider-4b v2、Hopper、semif系2種(0-shot)、AlexWortega_openjev 4B、laya、素のBERT直接評価)
-で横断比較した結果です。詳細(primitive別内訳・データセット別レーダー・全生データ)は
-`results/eval-summary/README.md`参照。
+### データセット
 
-| ライブラリ | Overall | HelpSteer2 | ベースモデル | パラメータ数 | 推論時間(ms/件) |
-|---|---:|---:|---|---:|---:|
-| **Jev v1.13.0** | **0.823** | 0.650 | TypeSafe Jev API | 非公開 | 235.12 |
-| decider v2 | 0.716 | 0.674 | Qwen3.5-4B-Base(Mapika/decider-4b v2) | 4.2B | 70.43 |
-| Hopper 0-shot | 0.684 | 0.616 | Qwen3.5-4B + LoRA(HopitAI/hopper) | 4.66B | 71.06 |
-| semif-ja 0-shot | 0.660 | 0.554 | Qwen3.5-4B | 4.66B | 83.92 |
-| semif 0-shot | 0.632 | 0.582 | Qwen3.5-4B | 4.66B | 65.87 |
-| AlexWortega_openjev 4B v2 | 0.596 | 0.520 | Qwen3.5-4B(qwen3.5-4b-nli-v2) | 4.54B | 75.28 |
-| laya multilingual | 0.450 | 0.607 | ModernBERT・独自(22層/768隠れ層) | 0.161B | 18.32 |
-| modernbert-ja-310m | 0.444 | 0.503 | (直接評価) | 0.315B | 2.38 |
+評価データは [hachiko85/openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) から取得できます
+(サブセット `noul` / `choice` / `score` / `all`、split は `test`)。標準の評価プロファイルは 30 データセット、
+1 ライブラリあたり 62,884 件です。
 
-HelpSteer2列は追加のScore指標(HelpSteer2-JA benchmark-v1・2,500件×5軸の正規化QWK平均、
-0.5が一致なし水準)で、Overallには含めない。Hopperの推論時間はGPU単独で測り直した値。2-shot版(semif・decider)は評価を続行中で、現時点の比較には含めていない。
+| Primitive | 軸数 | 件数 | データセット |
+|---|---:|---:|---|
+| Noul | 14 | 25,908 | JaNLI、JCoLA、JNLI、PAWS-X、TextDetox、WRIME、JAD-AFC |
+| Choice | 9 | 28,676 | MMMLU、JMMLU、JGPQA、JCommonsenseQA、XWinograd、MGSM、GSM8K-JA、JNLI |
+| Score | 7 | 8,300 | WRIME、Synthetic Score |
+| Score(追加) | 5 | 12,500 | HelpSteer2-JA benchmark-v1(Overall には含めない) |
 
-![ライブラリ別総合スコア](assets/eval/ranking-bar-chart.png)
-![モデルサイズ vs 精度](assets/eval/size-vs-accuracy-scatter.png)
-![ライブラリ別平均推論時間](assets/eval/latency-bar-chart.png)
-![Score](assets/eval/radar-score-detail.png)
-![Noul](assets/eval/radar-noul-detail.png)
-![Choice](assets/eval/radar-choice-detail.png)
+### 結果
+
+判定原理が異なる 8 ライブラリを、同一のデータ・条件で比較しています(2026-09-26 時点、0-shot)。
+
+| ライブラリ | Overall | Noul | Choice | Score | HelpSteer2 | ベースモデル | パラメータ数 | 推論時間(ms/件) |
+|---|---:|---:|---:|---:|---:|---|---:|---:|
+| **Jev v1.13.0** | **0.823** | 0.739 | 0.847 | 0.882 | 0.650 | TypeSafe Jev API | 非公開 | 235.12 |
+| decider v2 | 0.716 | 0.637 | 0.653 | 0.857 | 0.674 | Qwen3.5-4B-Base(Mapika/decider-4b v2) | 4.2B | 70.43 |
+| Hopper 0-shot | 0.684 | 0.664 | 0.551 | 0.836 | 0.616 | Qwen3.5-4B + LoRA(HopitAI/hopper) | 4.66B | 71.06 |
+| semif-ja 0-shot | 0.660 | 0.604 | 0.539 | 0.837 | 0.554 | Qwen3.5-4B | 4.66B | 83.92 |
+| semif 0-shot | 0.632 | 0.555 | 0.526 | 0.815 | 0.582 | Qwen3.5-4B | 4.66B | 65.87 |
+| AlexWortega_openjev 4B v2 | 0.596 | 0.558 | 0.463 | 0.768 | 0.520 | Qwen3.5-4B(qwen3.5-4b-nli-v2) | 4.54B | 75.28 |
+| laya multilingual | 0.450 | 0.339 | 0.313 | 0.698 | 0.607 | ModernBERT・独自 | 0.161B | 18.32 |
+| modernbert-ja-310m | 0.444 | 0.432 | 0.376 | 0.523 | 0.503 | (直接評価) | 0.315B | 2.38 |
+
+Overall は Noul(F1)・Choice(accuracy)・Score(正規化 QWK)の等加重平均です。HelpSteer2 は追加の Score 指標
+(5 軸の正規化 QWK 平均、0.5 が一致なし水準)で、Overall には含めません。Hopper の推論時間は GPU 単独で測り直した値、
+Jev は API のためネットワーク往復を含みます。2-shot 版(semif・decider)は評価を続行中で、この比較には含めていません。
+全生データとデータセット別の内訳は `results/eval-summary/README.md` にあります。
+
+<p align="center">
+  <img src="assets/eval/ranking-bar-chart.png" width="49%" alt="ライブラリ別総合スコア">
+  <img src="assets/eval/latency-bar-chart.png" width="49%" alt="ライブラリ別平均推論時間">
+</p>
+
+<p align="center">
+  <img src="assets/eval/radar-choice-detail.png" width="32%" alt="Choice">
+  <img src="assets/eval/radar-noul-detail.png" width="32%" alt="Noul">
+  <img src="assets/eval/radar-score-detail.png" width="32%" alt="Score">
+</p>
 
 主な知見:
 
-- **Jev(v1.13.0)が全手法中トップ**(0.823)。ただし外部SaaS APIのためパラメータ数非公開、
-  推論時間も最長(235ms/件、ネットワーク往復込み) — ローカル代替手法とはコスト構造が異なる。
-- **日本語自然文プロンプト > chatテンプレート+JSON構造化**(同一モデル・同一原理のzero-shot比較、
-  semif-ja 0.660 vs semif 0.632)。
-- **decider-4b v2がローカル手法で最良**(0.716)。同じQwen3.5-4B級のHopper(0.684)、
-  semif-ja(0.660)より高く、Choiceで特に差がつく。
-- **HelpSteer2-JA(追加Score指標)ではdecider v2(0.674)がJev(0.650)を上回った**。
-  laya multilingual(0.607)はOverall下位ながらこの指標では上位で、semif系(0.55〜0.58)や
-  AlexWortega_openjev(0.52)より高い。BERT直接評価は0.5前後でほぼ判別できていない。
+- **Jev(v1.13.0)が全ライブラリ中トップ**(0.823)。外部 API のためパラメータ数は非公開で、推論時間も最長です。
+- **decider-4b v2 がローカル実行で最良**(0.716)。同じ Qwen3.5-4B 系の Hopper(0.684)、semif-ja(0.660)より高く、
+  Choice で特に差がつきます。追加指標の HelpSteer2 では Jev(0.650)も上回りました(0.674)。
+- **日本語の自然文プロンプトが、chat テンプレート + JSON 構造化より良い**(同一モデル・0-shot で semif-ja 0.660 vs
+  semif 0.632)。
 
-## 次のトークンlogit方式のモデル比較(2026-09-18)
+再現性: `seed`、モデルの revision、データセットの revision、dtype、batch size を固定してください。`resume: true`
+は既存の `summary.json` を再利用するので、条件を変えた評価は別の `run_name` を使ってください。API キーや Hub token
+は YAML に書かず、環境変数で渡してください。
 
-12モデル、30軸、全Primitive coverage `3/3`、欠損0で完了しています(上記とは別軸: こちらは
-判定原理を`next_token_logit`に固定した上でのベースモデル比較)。
+## 学習
 
-| Overall上位 | Score |
-|---|---:|
-| Qwen3.5-4B | 65.57% |
-| Qwen3-8B | 64.79% |
-| Qwen3 4B Instruct 2507 | 64.76% |
-| Qwen3-Swallow 8B CPT v0.2 | 63.69% |
+Coming soon.(学習機能は現在整備中です。現フェーズは評価基盤です。)
 
-主な成果物:
+## ライセンス
 
-```text
-results/eval-primitives-20260918/
-├─ eval_noul.json
-├─ eval_choice.json
-├─ eval_score.json
-├─ eval_summary.json
-├─ radar-noul.png
-├─ radar-choice.png
-├─ radar-score.png
-├─ radar-summary.png
-└─ <model>/<dataset>/{metadata.json,predictions.jsonl,summary.json}
+- **コード**: MIT。
+- **データセット**: [openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) は、収録した 11 件(MIT・
+  Apache-2.0・CC BY・CC BY-SA 4.0)を集合物として **CC BY-SA 4.0** で配布しています。各データセットの元のライセンスと
+  表示義務は維持されます。収録していない JMMLU・WRIME(CC BY-NC-ND 4.0)、PAWS-X、TextDetox(OpenRAIL++)、JGPQA(要承認)は、
+  取得時に配布元から直接ダウンロードされ、各配布元のライセンスが適用されます(NC-ND のデータは商用利用も改変物の再配布も
+  できません)。詳細は `datasets_router/README.md` を参照してください。
+- **評価対象のモデル・ライブラリ**: 各配布元のライセンスに従ってください。特に HopitAI/hopper のアダプタ重みは
+  研究・デモ用途のみです。
+
+ライセンス表記は各配布元の記載に基づく整理で、法的助言ではありません。再配布・商用利用の前に、原文を確認してください。
+
+## その他
+
+引用:
+
+```bibtex
+@misc{jev-ja-lab,
+  author = {hachiko85},
+  title  = {jev-ja-lab: Japanese decision-model evaluation harness},
+  year   = {2026},
+  url    = {https://github.com/hachiko85/jev-ja-lab}
+}
 ```
 
-## 再現性
+評価対象のライブラリ・モデル:
 
-- `seed`、モデルrevision、データセットrevision、dtype、batch sizeを固定してください。
-- `resume: true` は既存の `summary.json` を再利用します。条件を変更した評価は別の `run_name` を使ってください。
-- scorerはテキスト生成を行わず、候補ラベルの次token logitを1回のforward passで比較します。
-- APIキーやHub tokenはYAMLへ書かず、環境変数で渡してください。
+- decider-4b: <https://huggingface.co/Mapika/decider-4b> / <https://github.com/Mapika/decider>
+- Hopper: <https://huggingface.co/HopitAI/hopper>
+- semif: <https://github.com/TheoLeeCJ/SemIf>
+- AlexWortega/openjev: <https://huggingface.co/AlexWortega/openjev>
+- laya: <https://pypi.org/project/laya/>
+- modernbert-ja-310m: <https://huggingface.co/sbintuitions/modernbert-ja-310m>
 
-## 検証
-
-```bash
-uv run pytest
-uv run ruff check .
-```
-
-現在の確認結果: `41 passed`、Ruff成功。
+データセットの出典・引用先は [openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) の
+Citation Information を参照してください。
