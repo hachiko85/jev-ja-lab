@@ -26,7 +26,7 @@
 ### Using uv
 
 ```bash
-uv sync --extra eval --extra viz --extra orchestrate --extra dev
+uv sync --extra semif --extra dev       # 使うライブラリだけを指定
 uv run pytest
 ```
 
@@ -35,19 +35,33 @@ uv run pytest
 ```bash
 python -m venv .venv
 source .venv/bin/activate              # Windows: .venv\Scripts\Activate.ps1
-pip install -e ".[eval,viz,orchestrate,dev]"
+pip install -e ".[semif,dev]"          # 使うライブラリだけを指定
 pytest
 ```
 
 ### Extras per library
 
+評価したいライブラリの名前を extra に指定すると、そのライブラリの評価に必要な依存関係だけが入ります
+(例: `pip install "jev-ja-lab[semif]"`、`uv sync --extra bert`)。複数指定もできます(`[semif,bert]`)。
 
+| Extra | ライブラリ | 追加で入るもの |
+|---|---|---|
+| `jev` | TypeSafe Jev API | httpx(ローカルモデル用の torch は入りません) |
+| `semif` | semif | torch、transformers など |
+| `semif-ja` | semif-ja | torch、transformers など |
+| `bert` | BERT 系(masked LM 直接評価) | torch、transformers など |
+| `embedding` | 文埋め込み + 学習済みヘッド | torch、transformers など |
+| `openjev` | AlexWortega/openjev | torch、transformers など |
+| `clm` | Contrastive-LM/CLM | torch、transformers など |
+| `hopper` | HopitAI/hopper | 上記 + peft |
+| `decider` | Mapika/decider-4b | 上記 + `pip install --no-deps decider-ai`(numpy 固定を避けるため別途) |
+| `laya` / `laya-bert` | laya | 上記 + laya |
+| `jevlike` | jevlike | 上記 + jevlike(GitHub) |
+| `all` | 上記すべて | (`decider-ai` の手順は別途) |
 
-```bash
-pip install -e ".[hopper]"             # Hopper(peft)
-pip install --no-deps decider-ai       # decider-4b(numpy固定を避けるため --no-deps)
-pip install -e ".[laya]"               # laya
-```
+各 extra には共通の実行環境(評価用の依存関係と YAML ランナー)が含まれます。GPU を使う場合は CUDA 対応の
+PyTorch が入ることを確認してください。新しいライブラリを追加するときは、同名の extra を `pyproject.toml` に
+追加します(`tests/unit/test_extras.py` が対応漏れを検出します)。
 
 ## 🚀 Quick Start
 

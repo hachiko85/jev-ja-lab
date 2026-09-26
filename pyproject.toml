@@ -12,6 +12,8 @@ license = { text = "MIT" }
 dependencies = []
 
 [project.optional-dependencies]
+# --- building blocks ---------------------------------------------------------------------
+# eval: local model inference. orchestrate: YAML runner (+ result charts). viz: plotting.
 eval = [
   "accelerate>=1.10",
   "datasets>=4.0",
@@ -33,21 +35,46 @@ orchestrate = [
   "pyarrow>=18",
   "PyYAML>=6.0",
 ]
+
+# --- one extra per library / scorer ---------------------------------------------------------
+# `pip install "jev-ja-lab[semif]"` (or `uv sync --extra semif`) installs only what that
+# library needs to be evaluated. When a new library (scorer) is added, add an extra with the
+# same name here, mapped in tests/unit/test_extras.py, and list it in the README.
+jev = [                       # TypeSafe Jev API (no local model)
+  "httpx>=0.27",
+  "jev-ja-lab[orchestrate]",
+]
+semif = ["jev-ja-lab[eval,orchestrate]"]        # semif (chat template + JSON, next-token logit)
+semif-ja = ["jev-ja-lab[eval,orchestrate]"]     # semif-ja (Japanese prompt, next-token logit)
+bert = ["jev-ja-lab[eval,orchestrate]"]         # BERT-family masked-LM scoring
+embedding = ["jev-ja-lab[eval,orchestrate]"]    # frozen sentence encoder + trained head
+openjev = ["jev-ja-lab[eval,orchestrate]"]      # AlexWortega/openjev (NLI cross-encoder)
+clm = ["jev-ja-lab[eval,orchestrate]"]          # Contrastive-LM/CLM (Qwen3-8B + heads)
+# HopitAI/hopper LoRA. Adapter weights are research/demo use only.
+hopper = [
+  "jev-ja-lab[eval,orchestrate]",
+  "peft>=0.21",
+]
+# Mapika/decider-4b. decider-ai's metadata pins numpy==1.26.4, which would downgrade numpy for
+# the whole environment, so it is NOT listed here: after installing this extra run
+#   pip install --no-deps decider-ai      (uv: uv pip install --no-deps decider-ai)
+# (the inference modules used by methods.decider do not import numpy).
+decider = ["jev-ja-lab[eval,orchestrate]"]
 laya = [
+  "jev-ja-lab[eval,orchestrate]",
+  "laya>=0.3.5",
+]
+laya-bert = [                 # laya's DecisionModel trained on a BERT-family encoder
+  "jev-ja-lab[eval,orchestrate]",
   "laya>=0.3.5",
 ]
 jevlike = [
+  "jev-ja-lab[eval,orchestrate]",
   "jevlike[transformers] @ git+https://github.com/vinnylarouge/jevlike.git",
 ]
-# HopitAI/hopper LoRA. Adapter weights are research/demo use only.
-hopper = [
-  "peft>=0.21",
+all = [                       # every library above except the decider-ai step
+  "jev-ja-lab[jev,semif,semif-ja,bert,embedding,openjev,clm,hopper,decider,laya,laya-bert,jevlike]",
 ]
-# Mapika/decider-4b. decider-ai's metadata pins numpy==1.26.4, which would downgrade
-# numpy for the whole environment, so it is NOT listed here: install it without deps
-#   uv pip install --no-deps decider-ai
-# (the inference modules used by methods.decider do not import numpy).
-decider = []
 dev = [
   "pytest>=8.3",
   "ruff>=0.11",
