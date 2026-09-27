@@ -33,6 +33,30 @@ def build_questions(primitive: str, question: str, options: list[str]) -> tuple[
     raise ValueError(f"unsupported primitive: {primitive}")
 
 
+FewShotExample = tuple[str, list[str], int]
+
+
+def format_few_shot(primitive: str, examples: list[FewShotExample], state: Any) -> str:
+    """Worked examples placed in front of the case, inside the /v1/systemone `state`.
+
+    lev answers each request's questions independently and has no few-shot mode of its own
+    (unlike decider it is not even trained with in-context examples), so this is the same
+    experiment as `DeciderScorer.format_few_shot`: examples are added the only way the wire
+    format allows, as more state text.
+    """
+    blocks = ["以下は同じ形式の判定の解答例です。"]
+    for number, (example_question, example_options, gold) in enumerate(examples, 1):
+        block = [f"[例{number}]", example_question]
+        if primitive != "noul":
+            listed = " / ".join(f"{i}: {option}" for i, option in enumerate(example_options))
+            block.append(f"選択肢: {listed}")
+        block.append(f"正解: {example_options[gold]}")
+        blocks.append("\n".join(block))
+    target = str(state) if state else "以下の質問に、上と同じ基準で答えてください。"
+    blocks.append(f"[判定対象]\n{target}")
+    return "\n\n".join(blocks)
+
+
 def parse_answer(primitive: str, answer: Any, count: int) -> tuple[list[float], list[float], int]:
     """(scores, probabilities, predicted_index) from one lev answer object."""
     if primitive == "noul":
@@ -64,6 +88,9 @@ class LevScorer:
         device: str = "cuda",
         dtype: str = "bfloat16",
         model_id: str | None = None,
+        few_shot_count: int = 0,
+        datasets_root: str | None = None,
+        few_shot_seed: int = 42,
     ) -> None:
         if primitive not in PRIMITIVES:
             raise ValueError(f"unsupported primitive: {primitive}")
@@ -78,6 +105,16 @@ class LevScorer:
         self.device = device
         self.dtype = dtype
         self.model_id = model_id or f"{model_name}@{revision}"
+        self.few_shot: list[FewShotExample] = []
+        if few_shot_count:
+            if datasets_root is None:
+                raise ValueError("few_shot_count requires datasets_root")
+            from openjev_ja.methods.semif_logit.examples import load_few_shot_examples
+
+            # Same per-primitive train examples semif's and decider's few-shot use.
+            self.few_shot = load_few_shot_examples(
+                primitive, datasets_root, few_shot_count, seed=few_shot_seed
+            )
         folder = snapshot_download(model_name, revision=revision)
         self.engine = lev.load(folder)  # bf16 on the (single) GPU, adapter + head + calibration
         self.base_model = self.engine.config.model_id
@@ -86,6 +123,8 @@ class LevScorer:
         import torch
 
         state, questions = build_questions(self.primitive, question, options)
+        if self.few_shot:
+            state = format_few_shot(self.primitive, self.few_shot, state)
         torch.cuda.synchronize()
         started = time.perf_counter()
         response = self.engine.system_one(state, questions)
@@ -114,5 +153,6 @@ class LevScorer:
             "primitive": self.primitive,
             "dtype": self.dtype,
             "device": self.device,
+            "few_shot_count": len(self.few_shot),
             "generation": False,
         }

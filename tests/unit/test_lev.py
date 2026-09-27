@@ -26,3 +26,15 @@ def test_lev_answers_are_parsed_per_primitive():
     answer = SimpleNamespace(probabilities={0: 0.1, 1: 0.2, 2: 0.7})
     _, probabilities, predicted = parse_answer("score", answer, 3)
     assert probabilities == [0.1, 0.2, 0.7] and predicted == 2
+
+
+def test_lev_few_shot_examples_go_into_the_state():
+    from openjev_ja.methods.lev.scorer import format_few_shot
+
+    examples = [("Q1", ["いいえ", "はい"], 1), ("Q2", ["低", "高"], 0)]
+    state = format_few_shot("choice", examples, "本題")
+    assert "[例1]\nQ1\n選択肢: 0: いいえ / 1: はい\n正解: はい" in state
+    assert "[例2]" in state
+    assert state.endswith("[判定対象]\n本題")
+    noul = format_few_shot("noul", examples, "")
+    assert "選択肢" not in noul and noul.endswith("上と同じ基準で答えてください。")
