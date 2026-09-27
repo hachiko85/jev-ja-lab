@@ -80,6 +80,11 @@ tasks:
     - synthetic_dissatisfaction
     - synthetic_risk
     - synthetic_relevance
+    - helpsteer_correctness
+    - helpsteer_helpfulness
+    - helpsteer_verbosity
+    - helpsteer_complexity
+    - helpsteer_coherence
     aggregate_metric: normalized_quadratic_weighted_kappa
     smoke_limit: 5
     chart:
@@ -756,13 +761,13 @@ datasets:
     adapter_dataset: wrime
 - id: helpsteer_correctness
   task: score
-  label: HelpSteer2 Correctness JA
+  label: HelpSteer2 Correctness JA (benchmark-v1)
   feature: 回答正確性・5段階
-  expected_items: 19958
+  expected_items: 2500
   revision: ea432e41ac690821953c38f77be9690c9c19cd9f
   source:
     format: parquet
-    path: openjev-extra/helpsteer2_ja/data.parquet
+    path: helpsteer2_ja/benchmark-v1.parquet
     adapter: score
     question_template: '質問: {prompt_ja}
 
@@ -778,13 +783,13 @@ datasets:
     prompt: 次の質問に対する回答の正確性を評価してください。
 - id: helpsteer_helpfulness
   task: score
-  label: HelpSteer2 Helpfulness JA
+  label: HelpSteer2 Helpfulness JA (benchmark-v1)
   feature: 回答有用性・5段階
-  expected_items: 19958
+  expected_items: 2500
   revision: ea432e41ac690821953c38f77be9690c9c19cd9f
   source:
     format: parquet
-    path: openjev-extra/helpsteer2_ja/data.parquet
+    path: helpsteer2_ja/benchmark-v1.parquet
     adapter: score
     question_template: '質問: {prompt_ja}
 
@@ -800,13 +805,13 @@ datasets:
     prompt: 次の質問に対する回答の有用性を評価してください。
 - id: helpsteer_verbosity
   task: score
-  label: HelpSteer2 Verbosity JA
+  label: HelpSteer2 Verbosity JA (benchmark-v1)
   feature: 回答詳細度・5段階
-  expected_items: 19958
+  expected_items: 2500
   revision: ea432e41ac690821953c38f77be9690c9c19cd9f
   source:
     format: parquet
-    path: openjev-extra/helpsteer2_ja/data.parquet
+    path: helpsteer2_ja/benchmark-v1.parquet
     adapter: score
     question_template: '質問: {prompt_ja}
 
@@ -822,13 +827,13 @@ datasets:
     prompt: 次の質問に対する回答の詳細度を評価してください。
 - id: helpsteer_complexity
   task: score
-  label: HelpSteer2 Complexity JA
+  label: HelpSteer2 Complexity JA (benchmark-v1)
   feature: 回答複雑度・5段階
-  expected_items: 19958
+  expected_items: 2500
   revision: ea432e41ac690821953c38f77be9690c9c19cd9f
   source:
     format: parquet
-    path: openjev-extra/helpsteer2_ja/data.parquet
+    path: helpsteer2_ja/benchmark-v1.parquet
     adapter: score
     question_template: '質問: {prompt_ja}
 
@@ -844,13 +849,13 @@ datasets:
     prompt: 次の質問に対する回答の複雑度を評価してください。
 - id: helpsteer_coherence
   task: score
-  label: HelpSteer2 Coherence JA
+  label: HelpSteer2 Coherence JA (benchmark-v1)
   feature: 回答一貫性・5段階
-  expected_items: 19958
+  expected_items: 2500
   revision: ea432e41ac690821953c38f77be9690c9c19cd9f
   source:
     format: parquet
-    path: openjev-extra/helpsteer2_ja/data.parquet
+    path: helpsteer2_ja/benchmark-v1.parquet
     adapter: score
     question_template: '質問: {prompt_ja}
 

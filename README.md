@@ -12,7 +12,7 @@
 
 ## 📰 News
 
-- **2026-09-27** **CLM v0.1**(Contrastive-LM/CLM-v0.1-8B)を評価対象に追加。
+- **2026-09-27** HelpSteer2-JA を Score に統合(Score 12 データセット、標準プロファイルは 35 データセット・75,384 件)。**CLM v0.1**(Contrastive-LM/CLM-v0.1-8B)を評価対象に追加。
 - **2026-09-26** 評価データセット [openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) を整備
   (11 件を収録、それ以外は配布元から取得)。HelpSteer2-JA を追加の Score 指標として追加。**decider-4b v2** と
   **Hopper** を評価対象に追加。
@@ -89,35 +89,34 @@ Jev API を評価する場合は `.env` に `TYPESAFE_API_KEY` / `TYPESAFE_API_U
 ### 📚 Datasets
 
 評価データは [hachiko85/openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) から取得できます
-(サブセット `noul` / `choice` / `score` / `all`、split は `test`)。標準の評価プロファイルは 30 データセット、
-1 ライブラリあたり 62,884 件です。
+(サブセット `noul` / `choice` / `score` / `all`、split は `test`)。標準の評価プロファイルは 35 データセット、
+1 ライブラリあたり 75,384 件です。
 
 | Primitive | 軸数 | 件数 | データセット |
 |---|---:|---:|---|
 | Noul | 14 | 25,908 | JaNLI、JCoLA、JNLI、PAWS-X、TextDetox、WRIME、JAD-AFC |
 | Choice | 9 | 28,676 | MMMLU、JMMLU、JGPQA、JCommonsenseQA、XWinograd、MGSM、GSM8K-JA、JNLI |
-| Score | 7 | 8,300 | WRIME、Synthetic Score |
-| Score(追加) | 5 | 12,500 | HelpSteer2-JA benchmark-v1(Overall には含めない) |
+| Score | 12 | 20,800 | WRIME、Synthetic Score、HelpSteer2-JA(5 軸、benchmark-v1) |
 
 ### 🏆 Results
 
-判定原理が異なる 9 ライブラリを、同一のデータ・条件で比較しています(2026-09-26 時点、0-shot)。
+判定原理が異なる 9 ライブラリを、同一のデータ・条件で比較しています(2026-09-27 時点、0-shot)。
 
-| ライブラリ | Overall | Noul | Choice | Score | HelpSteer2 | ベースモデル | パラメータ数 | 推論時間(ms/件) |
-|---|---:|---:|---:|---:|---:|---|---:|---:|
-| **Jev v1.13.0** | **0.823** | 0.739 | 0.847 | 0.882 | 0.650 | TypeSafe Jev API | 非公開 | 235.12 |
-| decider v2 | 0.716 | 0.637 | 0.653 | 0.857 | 0.674 | Qwen3.5-4B-Base(Mapika/decider-4b v2) | 4.2B | 70.43 |
-| Hopper 0-shot | 0.684 | 0.664 | 0.551 | 0.836 | 0.616 | Qwen3.5-4B + LoRA(HopitAI/hopper) | 4.66B | 71.06 |
-| semif-ja 0-shot | 0.660 | 0.604 | 0.539 | 0.837 | 0.554 | Qwen3.5-4B | 4.66B | 83.92 |
-| semif 0-shot | 0.632 | 0.555 | 0.526 | 0.815 | 0.582 | Qwen3.5-4B | 4.66B | 65.87 |
-| AlexWortega_openjev 4B v2 | 0.596 | 0.558 | 0.463 | 0.768 | 0.520 | Qwen3.5-4B(qwen3.5-4b-nli-v2) | 4.54B | 75.28 |
-| laya multilingual | 0.450 | 0.339 | 0.313 | 0.698 | 0.607 | ModernBERT・独自 | 0.161B | 18.32 |
-| modernbert-ja-310m | 0.444 | 0.432 | 0.376 | 0.523 | 0.503 | (直接評価) | 0.315B | 2.38 |
-| CLM v0.1 | 0.410 | 0.423 | 0.289 | 0.519 | 0.512 | Qwen3-8B + 射影ヘッド(Contrastive-LM/CLM-v0.1-8B) | 8.2B | 89.33 |
+| ライブラリ | Overall | Noul | Choice | Score | ベースモデル | パラメータ数 | 推論時間(ms/件) |
+|---|---:|---:|---:|---:|---|---:|---:|
+| **Jev v1.13.0** | **0.790** | 0.739 | 0.847 | 0.785 | TypeSafe Jev API | 非公開 | 229.12 |
+| decider v2 | 0.690 | 0.637 | 0.653 | 0.781 | Qwen3.5-4B-Base(Mapika/decider-4b v2) | 4.2B | 187.12 |
+| Hopper 0-shot | 0.653 | 0.664 | 0.551 | 0.744 | Qwen3.5-4B + LoRA(HopitAI/hopper) | 4.66B | 84.69 |
+| semif-ja 0-shot | 0.621 | 0.604 | 0.539 | 0.719 | Qwen3.5-4B | 4.66B | 90.35 |
+| semif 0-shot | 0.600 | 0.555 | 0.526 | 0.718 | Qwen3.5-4B | 4.66B | 77.89 |
+| AlexWortega_openjev 4B v2 | 0.562 | 0.558 | 0.463 | 0.665 | Qwen3.5-4B(qwen3.5-4b-nli-v2) | 4.54B | 135.85 |
+| modernbert-ja-310m | 0.441 | 0.432 | 0.376 | 0.515 | (直接評価) | 0.315B | 7.56 |
+| laya multilingual | 0.437 | 0.339 | 0.313 | 0.660 | ModernBERT・独自 | 0.161B | 22.18 |
+| CLM v0.1 | 0.409 | 0.423 | 0.289 | 0.516 | Qwen3-8B + 射影ヘッド(Contrastive-LM/CLM-v0.1-8B) | 8.2B | 116.13 |
 
-Overall は Noul(F1)・Choice(accuracy)・Score(正規化 QWK)の等加重平均です。HelpSteer2 は追加の Score 指標
-(5 軸の正規化 QWK 平均、0.5 が一致なし水準)で、Overall には含めません。Hopper の推論時間は GPU 単独で測り直した値、
-Jev は API のためネットワーク往復を含みます。2-shot 版(semif・decider)は評価を続行中で、この比較には含めていません。
+Overall は Noul(F1)・Choice(accuracy)・Score(正規化 QWK)の等加重平均です。Score は WRIME・Synthetic Score・HelpSteer2-JA(5 軸、
+benchmark-v1 の 2,500 件)を合わせた 12 データセットの平均です。推論時間は 35 データセットの件数加重平均で、Hopper は GPU 単独で
+測り直した値、Jev は API のためネットワーク往復を含みます。2-shot 版(semif・decider)は評価を続行中で、この比較には含めていません。
 全生データとデータセット別の内訳は `results/eval-summary/README.md` にあります。
 
 <p align="center">
@@ -136,13 +135,13 @@ Jev は API のためネットワーク往復を含みます。2-shot 版(semif�
 
 ### 💡 Key Findings
 
-- **Jev(v1.13.0)が全ライブラリ中トップ**(0.823)。外部 API のためパラメータ数は非公開で、推論時間も最長です。
-- **decider-4b v2 がローカル実行で最良**(0.716)。同じ Qwen3.5-4B 系の Hopper(0.684)、semif-ja(0.660)より高く、
-  Choice で特に差がつきます。追加指標の HelpSteer2 では Jev(0.650)も上回りました(0.674)。
-- **CLM v0.1 は日本語では機能しなかった**(Overall 0.410、Noul の一部と HelpSteer2 は 0.5 前後)。英語で学習されたモデルで、
+- **Jev(v1.13.0)が全ライブラリ中トップ**(0.790)。外部 API のためパラメータ数は非公開で、推論時間も最長です。
+- **decider-4b v2 がローカル実行で最良**(0.690)。同じ Qwen3.5-4B 系の Hopper(0.653)、semif-ja(0.621)より高く、
+  Choice で特に差がつきます。
+- **CLM v0.1 は日本語では機能しなかった**(Overall 0.409、Score は 0.5 前後で判別できていない)。英語で学習されたモデルで、
   Choice も accuracy 0.29 と低い。推論時間は約 89ms/件。
-- **日本語の自然文プロンプトが、chat テンプレート + JSON 構造化より良い**(同一モデル・0-shot で semif-ja 0.660 vs
-  semif 0.632)。
+- **日本語の自然文プロンプトが、chat テンプレート + JSON 構造化より良い**(同一モデル・0-shot で semif-ja 0.621 vs
+  semif 0.600)。
 
 再現性: `seed`、モデルの revision、データセットの revision、dtype、batch size を固定してください。`resume: true`
 は既存の `summary.json` を再利用するので、条件を変えた評価は別の `run_name` を使ってください。API キーや Hub token

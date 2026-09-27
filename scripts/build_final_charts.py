@@ -123,8 +123,13 @@ PRIMITIVE_DATASETS: dict[str, list[str]] = {
     "score": [
         "synthetic_dissatisfaction", "synthetic_relevance", "synthetic_risk",
         "synthetic_urgency", "wrime_anger", "wrime_joy", "wrime_sentiment",
+        "helpsteer_correctness", "helpsteer_helpfulness", "helpsteer_verbosity",
+        "helpsteer_complexity", "helpsteer_coherence",
     ],
 }
+HELPSTEER_AXES = ("correctness", "helpfulness", "verbosity", "complexity", "coherence")
+HELPSTEER_ITEMS = 2500     # benchmark-v1 rows per HelpSteer2 axis
+BASE_ITEMS = 62884         # items behind each group's `latency_ms` (the 30-dataset base profile)
 PRIMITIVE_METRIC = {
     "noul": "f1", "choice": "accuracy", "score": "normalized_quadratic_weighted_kappa",
 }
@@ -158,31 +163,31 @@ DATASET_LABELS = {
     "wrime_anger": "WRIME Anger\n（読み手の怒り強度・4段階）",
     "wrime_joy": "WRIME Joy\n（読み手の喜び強度・4段階）",
     "wrime_sentiment": "WRIME Sentiment\n（否定〜肯定の感情・5段階）",
+    "helpsteer_correctness": "HelpSteer2 Correctness\n（回答の正確性・5段階）",
+    "helpsteer_helpfulness": "HelpSteer2 Helpfulness\n（回答の有用性・5段階）",
+    "helpsteer_verbosity": "HelpSteer2 Verbosity\n（回答の詳細度・5段階）",
+    "helpsteer_complexity": "HelpSteer2 Complexity\n（回答の複雑さ・5段階）",
+    "helpsteer_coherence": "HelpSteer2 Coherence\n（回答の一貫性・5段階）",
 }
 
 
-HELPSTEER_AXES = ("correctness", "helpfulness", "verbosity", "complexity", "coherence")
-HELPSTEER_LABELS = {
-    "correctness": "Correctness\n（回答の正確性）",
-    "helpfulness": "Helpfulness\n（回答の有用性）",
-    "verbosity": "Verbosity\n（回答の詳細度）",
-    "complexity": "Complexity\n（回答の複雑さ）",
-    "coherence": "Coherence\n（回答の一貫性）",
-}
-
-
-def _helpsteer_scores(g: dict) -> dict[str, float]:
-    """Per-axis normalized QWK on HelpSteer2-JA benchmark-v1 (2,500 rows), the extra Score
-    indicator kept out of the 30-dataset Score aggregate. Empty until that run exists."""
+def _helpsteer_rows(g: dict) -> list[dict]:
+    """HelpSteer2-JA benchmark-v1 summary rows of a group. Libraries evaluated before the
+    axes joined the standard Score profile have them in their own run
+    (results/eval-helpsteer-series or the group's `helpsteer_run`)."""
+    if "helpsteer" not in g:
+        return []
     run = g.get("helpsteer_run", "eval-helpsteer-series")
     path = ROOT / "results" / run / g["helpsteer"] / "summary.score.json"
     if not path.is_file():
-        return {}
-    rows = {r["dataset"]: r for r in json.loads(path.read_text(encoding="utf-8"))}
-    axes = {a: rows.get(f"helpsteer_{a}") for a in HELPSTEER_AXES}
-    if any(v is None for v in axes.values()):
-        return {}
-    return {a: v[PRIMITIVE_METRIC["score"]] for a, v in axes.items()}
+        return []
+    rows = json.loads(path.read_text(encoding="utf-8"))
+    return [r for r in rows if r["dataset"].startswith("helpsteer_")]
+
+
+def _helpsteer_latency_ms(g: dict) -> float | None:
+    rows = _helpsteer_rows(g)
+    return sum(r["mean_latency_ms"] for r in rows) / len(rows) if rows else None
 
 
 def build_table() -> list[dict]:
@@ -209,17 +214,25 @@ def build_table() -> list[dict]:
             score = prim_score(g["score"], "score")
         else:
             noul, choice, score = g["noul"], g["choice"], g["score"]
-        helpsteer_axes = _helpsteer_scores(g)
-        helpsteer = (
-            sum(helpsteer_axes.values()) / len(helpsteer_axes) if helpsteer_axes else None
+        # Score is the macro average over every Score dataset, HelpSteer2-JA axes included.
+        per_dataset = _dataset_scores(g, "score")
+        score = sum(per_dataset[d] for d in PRIMITIVE_DATASETS["score"]) / len(
+            PRIMITIVE_DATASETS["score"]
         )
         vals = [v for v in (noul, choice, score) if v is not None]
         overall = sum(vals) / len(vals) if vals else None
+        # Latency: item-weighted over the base profile plus the HelpSteer2 items.
+        helpsteer_latency = _helpsteer_latency_ms(g)
+        latency = g["latency_ms"]
+        if helpsteer_latency is not None:
+            extra = HELPSTEER_ITEMS * len(HELPSTEER_AXES)
+            latency = (g["latency_ms"] * BASE_ITEMS + helpsteer_latency * extra) / (
+                BASE_ITEMS + extra
+            )
         rows.append({
             "method": g["method"], "label_top": g["label_top"], "label_bottom": g["label_bottom"],
             "noul": noul, "choice": choice, "score": score, "overall": overall,
-            "helpsteer": helpsteer, "helpsteer_axes": helpsteer_axes,
-            "params_b": g["params_b"], "latency_ms": g["latency_ms"],
+            "params_b": g["params_b"], "latency_ms": latency,
         })
     rows.sort(key=lambda r: -(r["overall"] or 0))
     table_path = OUT / "final_methods_table.json"
@@ -394,7 +407,11 @@ def _dataset_scores(g: dict, primitive: str) -> dict[str, float]:
     path = ROOT / "results" / run / model_id / f"summary.{primitive}.json"
     rows = json.loads(path.read_text(encoding="utf-8"))
     metric = PRIMITIVE_METRIC[primitive]
-    return {r["dataset"]: r[metric] for r in rows}
+    scores = {r["dataset"]: r[metric] for r in rows}
+    if primitive == "score":
+        for r in _helpsteer_rows(g):   # libraries measured before the axes joined the profile
+            scores.setdefault(r["dataset"], r[metric])
+    return scores
 
 
 def build_per_primitive_radars(rows: list[dict]) -> None:
@@ -407,25 +424,16 @@ def build_per_primitive_radars(rows: list[dict]) -> None:
     for primitive in ("noul", "choice", "score"):
         axes = PRIMITIVE_DATASETS[primitive]
         axis_labels = [DATASET_LABELS.get(a, a) for a in axes]
-        # Score also carries the HelpSteer2-JA axes (extra indicator); only methods that
-        # have that run can be drawn on the extended radar.
-        with_helpsteer = primitive == "score" and all(r.get("helpsteer_axes") for r in rows)
-        if with_helpsteer:
-            axis_labels += [f"HelpSteer2 {HELPSTEER_LABELS[a]}" for a in HELPSTEER_AXES]
         series = []
         for i, row in enumerate(rows):
-            group = method_to_group[row["method"]]
-            scores = _dataset_scores(group, primitive)
-            values = [scores[a] for a in axes]
-            if with_helpsteer:
-                values += [row["helpsteer_axes"][a] for a in HELPSTEER_AXES]
+            scores = _dataset_scores(method_to_group[row["method"]], primitive)
             series.append({
                 "name": _legend_name(row), "color": COLORS[i % len(COLORS)],
-                "values": values,
+                "values": [scores[a] for a in axes],
             })
         count = len(axis_labels)
         subtitle = f"データセット別{metric_labels[primitive]}(全ライブラリ共通{count}件)"
-        if with_helpsteer:
+        if primitive == "score":
             subtitle += " HelpSteer2-JAはbenchmark-v1・2,500件"
         _render_radar(
             series, axis_labels, title=titles[primitive], subtitle=subtitle,
