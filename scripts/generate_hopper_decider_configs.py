@@ -45,6 +45,18 @@ SERIES = {
             "dtype": "bfloat16",
         },
     },
+    "lev": {
+        "run_name": "eval-lev-series",
+        "model_id": "lev-4b",
+        "label": "Lev (LoRA on Qwen3.5-4B)",
+        "color": "#7f7f7f",
+        "entry": {
+            "repo_id": "interfaze-ai/lev",
+            "revision": "f8ef71157ec06a7d3b6435bc0756f9d735c33748",
+            "scorer": "lev",
+            "dtype": "bfloat16",
+        },
+    },
     "clm": {
         "run_name": "eval-clm-series",
         "model_id": "clm-v0.1-8b",

@@ -12,6 +12,7 @@
 
 ## 📰 News
 
+- **2026-09-27** **Lev**(interfaze-ai/lev)を評価対象に追加。
 - **2026-09-27** HelpSteer2-JA を Score に統合(Score 12 データセット、標準プロファイルは 35 データセット・75,384 件)。**CLM v0.1**(Contrastive-LM/CLM-v0.1-8B)を評価対象に追加。
 - **2026-09-26** 評価データセット [openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) を整備
   (11 件を収録、それ以外は配布元から取得)。HelpSteer2-JA を追加の Score 指標として追加。**decider-4b v2** と
@@ -54,6 +55,7 @@ pytest
 | `embedding` | 文埋め込み + 学習済みヘッド | torch、transformers など |
 | `openjev` | AlexWortega/openjev | torch、transformers など |
 | `clm` | Contrastive-LM/CLM | torch、transformers など |
+| `lev` | interfaze-ai/lev | 上記 + peft、公式 `lev` パッケージ(Python 3.12 以上) |
 | `hopper` | HopitAI/hopper | 上記 + peft |
 | `decider` | Mapika/decider-4b | 上記 + `pip install --no-deps decider-ai`(numpy 固定を避けるため別途) |
 | `laya` / `laya-bert` | laya | 上記 + laya |
@@ -100,12 +102,13 @@ Jev API を評価する場合は `.env` に `TYPESAFE_API_KEY` / `TYPESAFE_API_U
 
 ### 🏆 Results
 
-判定原理が異なる 9 ライブラリを、同一のデータ・条件で比較しています(2026-09-27 時点、0-shot)。
+判定原理が異なる 10 ライブラリを、同一のデータ・条件で比較しています(2026-09-27 時点、0-shot)。
 
 | ライブラリ | Overall | Noul | Choice | Score | ベースモデル | パラメータ数 | 推論時間(ms/件) |
 |---|---:|---:|---:|---:|---|---:|---:|
 | **Jev v1.13.0** | **0.790** | 0.739 | 0.847 | 0.785 | TypeSafe Jev API | 非公開 | 229.12 |
 | decider v2 | 0.690 | 0.637 | 0.653 | 0.781 | Qwen3.5-4B-Base(Mapika/decider-4b v2) | 4.2B | 187.12 |
+| Lev | 0.659 | 0.667 | 0.565 | 0.744 | Qwen3.5-4B + LoRA(interfaze-ai/lev) | 4.66B | 119.94 |
 | Hopper 0-shot | 0.653 | 0.664 | 0.551 | 0.744 | Qwen3.5-4B + LoRA(HopitAI/hopper) | 4.66B | 84.69 |
 | semif-ja 0-shot | 0.621 | 0.604 | 0.539 | 0.719 | Qwen3.5-4B | 4.66B | 90.35 |
 | semif 0-shot | 0.600 | 0.555 | 0.526 | 0.718 | Qwen3.5-4B | 4.66B | 77.89 |
@@ -138,6 +141,8 @@ benchmark-v1 の 2,500 件)を合わせた 12 データセットの平均です�
 - **Jev(v1.13.0)が全ライブラリ中トップ**(0.790)。外部 API のためパラメータ数は非公開で、推論時間も最長です。
 - **decider-4b v2 がローカル実行で最良**(0.690)。同じ Qwen3.5-4B 系の Hopper(0.653)、semif-ja(0.621)より高く、
   Choice で特に差がつきます。
+- **Lev(Qwen3.5-4B + LoRA)は英語学習ながら日本語でも実用的**(Overall 0.659、3 位)。同じ Qwen3.5-4B 系の Hopper
+  (0.653)を上回り、decider には届きません。推論時間は約 120ms/件です。
 - **CLM v0.1 は日本語では機能しなかった**(Overall 0.409、Score は 0.5 前後で判別できていない)。英語で学習されたモデルで、
   Choice も accuracy 0.29 と低い。推論時間は約 89ms/件。
 - **日本語の自然文プロンプトが、chat テンプレート + JSON 構造化より良い**(同一モデル・0-shot で semif-ja 0.621 vs
@@ -181,6 +186,7 @@ Coming soon.(学習機能は現在整備中です。現フェーズは評価基�
 
 - decider-4b: <https://huggingface.co/Mapika/decider-4b> / <https://github.com/Mapika/decider>
 - Hopper: <https://huggingface.co/HopitAI/hopper>
+- Lev: <https://huggingface.co/interfaze-ai/lev> / <https://github.com/Abhinavexists/lev>
 - CLM: <https://huggingface.co/Contrastive-LM/CLM-v0.1-8B> / <https://github.com/Contrastive-LM/CLM>
 - semif: <https://github.com/TheoLeeCJ/SemIf>
 - AlexWortega/openjev: <https://huggingface.co/AlexWortega/openjev>

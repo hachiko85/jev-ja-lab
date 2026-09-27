@@ -24,6 +24,8 @@ from openjev_ja.methods.hopper.scorer import BASE_REVISION as HOPPER_BASE_REVISI
 from openjev_ja.methods.jevlike import JevlikeScorer
 from openjev_ja.methods.laya import LayaScorer
 from openjev_ja.methods.laya_bert import LayaBertScorer
+from openjev_ja.methods.lev import LevScorer
+from openjev_ja.methods.lev.scorer import REVISION as LEV_REVISION
 from openjev_ja.methods.next_token_logit import NextTokenLogitScorer
 from openjev_ja.methods.nli_cross_encoder import NLICrossEncoderScorer
 from openjev_ja.methods.semif_logit import SemifLogitScorer
@@ -164,6 +166,19 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
             model_id=model.get("model_id"),
             few_shot_count=int(model.get("few_shot_count", 0)),
             datasets_root=str(runtime["datasets_root"]),
+        )
+    if scorer_name == "lev":
+        if not model.get("primitive"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'lev' requires 'primitive'"
+            )
+        return LevScorer(
+            _model_reference(model, runtime),
+            primitive=str(model["primitive"]),
+            revision=str(model.get("revision", LEV_REVISION)),
+            device=device,
+            dtype=str(model.get("dtype", "bfloat16")),
+            model_id=model.get("model_id"),
         )
     if scorer_name == "clm":
         if not model.get("primitive"):

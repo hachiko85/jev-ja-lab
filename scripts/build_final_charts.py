@@ -91,6 +91,14 @@ GROUPS = [
         "score": "clm-v0.1-8b-score", "params_b": 8.2, "latency_ms": 89.33,
     },
     {
+        # Evaluated with the standard 35-dataset profile, so no separate HelpSteer2 run and
+        # `latency_ms` already covers all 75,384 items.
+        "method": "Lev",
+        "label_top": "Lev", "label_bottom": "Qwen3.5-4B + LoRA (4.66B)",
+        "noul": "lev-4b-noul", "choice": "lev-4b-choice", "score": "lev-4b-score",
+        "params_b": 4.66, "latency_ms": 119.94,
+    },
+    {
         # Version pinned from the API's own response_model field, not guessed.
         "method": "Jev(jev-1.13.0)",
         "helpsteer": "jev-latest", "helpsteer_run": "eval-helpsteer-jev",

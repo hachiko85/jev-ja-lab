@@ -16,6 +16,7 @@ SCORER_EXTRAS = {
     "hopper": "hopper",
     "decider": "decider",
     "clm": "clm",
+    "lev": "lev",
     "semif-logit": "semif",
     "qwen-direct": "semif-ja",
     "masked-lm": "bert",
