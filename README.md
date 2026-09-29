@@ -154,7 +154,26 @@ benchmark-v1 の 2,500 件)を合わせた 12 データセットの平均です�
 
 ## 🎓 Training
 
-Coming soon.(学習機能は現在整備中です。現フェーズは評価基盤です。)
+評価と同じ考え方で、YAML 1本でライブラリ(アーキテクチャ)ごとに学習を回せます。`configs/train/*.yaml` の
+`models:` で `architecture` を指定するだけで、そのライブラリ用の学習ループが選ばれます
+(`openjev_ja.train.architectures` が eval 側の `scorer` 一覧に相当するレジストリ)。現在は
+laya の `DecisionModel`(frozen encoder + 小さな学習ヘッド、supervised cross-entropy)のみ実装済みです。
+
+```bash
+uv run jev-ja-lab-train-workflow --config configs/train/eikos-laya-bert.yaml
+```
+
+- **データ**: `openjev_ja.train.corpus` が、外部コーパス(現在は eikos-decisions 形式の
+  `{state, question_type, instructions, options, expected}` JSONL)を、評価と同じ `BenchmarkItem`
+  (`question` / `options` / `gold_index`)に変換します。`lang` で言語を絞れます
+  (例: `lang: Japanese`)。
+- **検証**: 固定の train/val 分割ではなく k-fold 交差検証です(`openjev_ja.train.cv`)。
+  `folds` 個のモデルを独立に学習し、各 fold の held-out 集合での指標(Noul は F1、Choice は
+  accuracy、Score は正規化 QWK)の平均・標準偏差を `summary.json` に出します。
+- **結果**: `results/train-<run_name>/<model-id>/{summary.json, fold-<k>.pt, run_summary.json}`。
+- **新しいアーキテクチャの追加**: `openjev_ja/train/architectures.py` に `ArchitectureSpec`
+  (build / forward_logits / trainable_parameters / state_dict の4関数)を1つ追加するだけで、
+  YAML の `architecture:` から選べるようになります(評価側の scorer 追加と同じパターン)。
 
 ## 📄 License
 

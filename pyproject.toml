@@ -100,6 +100,7 @@ jev-ja-lab-eval-workflow = "openjev_ja.eval.workflow:main"
 jev-ja-lab-embedding-train = "openjev_ja.methods.embedding.train:main"
 jev-ja-lab-jevlike-train = "openjev_ja.methods.jevlike.train:main"
 jev-ja-lab-laya-bert-train = "openjev_ja.methods.laya_bert.train:main"
+jev-ja-lab-train-workflow = "openjev_ja.train.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/openjev_ja"]
