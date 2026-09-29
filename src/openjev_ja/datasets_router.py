@@ -101,16 +101,22 @@ def viewer_url(entry: dict[str, Any], manifest: dict[str, Any]) -> str:
 
 
 def catalog_rows(manifest: dict[str, Any], subset: str) -> list[dict[str, Any]]:
-    """Flat rows describing where each dataset of a subset comes from (what the Hub viewer
-    shows for a subset). The rows are a routing table: the data itself stays at its origin,
-    reachable through `viewer_url` (browse) and the client (fetch)."""
+    """Routing table rows: where each dataset of a subset comes from. `subset="router"` lists
+    only the datasets that are not mirrored in the repository (they are fetched from their
+    origin). `viewer_url` opens the actual rows at the source."""
+    if subset == "router":
+        entries = [e for e in manifest["datasets"] if e.get("distribution") == "router"]
+        entries += manifest.get("excluded", [])
+    else:
+        entries = select(manifest, subset)
     rows = []
-    for entry in select(manifest, subset):
+    for entry in entries:
         source = entry["source"]
         rows.append(
             {
                 "id": entry["id"],
                 "title": entry["title"],
+                "distribution": entry.get("distribution", "router"),
                 "tasks": ",".join(entry["tasks"]),
                 "rows": entry["rows"],
                 "license": entry["license"],
@@ -120,7 +126,7 @@ def catalog_rows(manifest: dict[str, Any], subset: str) -> list[dict[str, Any]]:
                 "source_split": source.get("split"),
                 "revision": source.get("revision"),
                 "viewer_url": viewer_url(entry, manifest),
-                "description": entry["description"],
+                "description": entry["description"] if "description" in entry else entry["reason"],
             }
         )
     return rows

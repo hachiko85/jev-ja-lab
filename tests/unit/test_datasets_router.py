@@ -47,9 +47,29 @@ def test_gated_datasets_are_not_routed_unless_asked(manifest):
     assert "jgpqa_diamond" not in {entry["id"] for entry in router.select(manifest, "choice")}
 
 
-def test_own_data_is_the_only_thing_stored_in_the_router_repo(manifest):
-    own = {entry["id"] for entry in manifest["datasets"] if entry["source"]["kind"] == "own"}
+MIRRORABLE = {"MIT", "Apache-2.0", "CC BY 4.0", "CC BY-SA 4.0"}
+
+
+def test_only_licenses_that_fit_cc_by_sa_are_mirrored(manifest):
+    mirrored = [e for e in manifest["datasets"] if e["distribution"] == "mirror"]
+    routed = {e["id"] for e in manifest["datasets"] if e["distribution"] == "router"}
+    assert {e["license"] for e in mirrored} <= MIRRORABLE
+    assert routed == {"jmmlu", "wrime", "paws_x_ja", "textdetox_ja"}
+    assert all(e["distribution"] == "router" for e in manifest["excluded"])
+
+
+def test_repo_license_is_cc_by_sa_because_nothing_more_restrictive_is_mirrored(manifest):
+    assert manifest["license"] == "cc-by-sa-4.0"
+    mirrored = [e for e in manifest["datasets"] if e["distribution"] == "mirror"]
+    mirrored_licenses = {e["license"] for e in mirrored}
+    assert "CC BY-SA 4.0" in mirrored_licenses
+    assert not any("NC" in license_ or "ND" in license_ for license_ in mirrored_licenses)
+
+
+def test_own_data_is_stored_in_the_repo(manifest):
+    own = {e["id"] for e in manifest["datasets"] if e["source"]["kind"] == "own"}
     assert own == {"synthetic_score", "helpsteer2_ja_benchmark_v1"}
+    assert all(e["distribution"] == "mirror" for e in manifest["datasets"] if e["id"] in own)
 
 
 def test_profile_datasets_exist_in_the_eval_configs(manifest):
@@ -61,12 +81,6 @@ def test_profile_datasets_exist_in_the_eval_configs(manifest):
         assert set(entry["profile_datasets"]) <= config_ids, entry["id"]
 
 
-def test_repo_license_is_the_strictest_inherited_one(manifest):
-    licenses = {entry["license"] for entry in manifest["datasets"]}
-    assert "CC BY-NC-ND 4.0" in licenses
-    assert manifest["license"] == "cc-by-nc-nd-4.0"
-
-
 def test_select_rejects_unknown_subset(manifest):
     with pytest.raises(router.RouterError):
         router.select(manifest, "everything")
@@ -75,7 +89,15 @@ def test_select_rejects_unknown_subset(manifest):
 def test_catalog_rows_describe_every_dataset_of_the_subset(manifest):
     rows = router.catalog_rows(manifest, "score")
     assert [row["id"] for row in rows] == manifest["subsets"]["score"]
-    assert all(row["license"] and row["source_kind"] for row in rows)
+    assert all(row["license"] and row["source_kind"] and row["viewer_url"] for row in rows)
+
+
+def test_router_catalog_lists_only_the_datasets_that_are_not_mirrored(manifest):
+    rows = router.catalog_rows(manifest, "router")
+    assert {row["id"] for row in rows} == {
+        "jmmlu", "wrime", "paws_x_ja", "textdetox_ja", "jgpqa_diamond",
+    }
+    assert all(row["distribution"] == "router" for row in rows)
 
 
 def test_unsupported_manifest_version_is_rejected(tmp_path):

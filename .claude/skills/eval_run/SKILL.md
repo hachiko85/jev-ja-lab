@@ -19,8 +19,8 @@ description: 指定したモデル・手法(scorer)・データセットでベ�
 | `nli-cross-encoder` (AlexWortega/openjev) | `jev-ja-lab-eval` | `--model`省略時`AlexWortega/openjev`(サブフォルダ指定はorchestrate経由が必要) |
 | `mock` | `jev-ja-lab-eval` | 動作確認専用、実際の判定はしない |
 | `semif-logit` (semif zero-shot/few-shot) | `jev-ja-lab-orchestrate` / `-workflow` | `few_shot_count`はconfig側で指定 |
-| `hopper` (HopitAI/hopper、Qwen3.5-4B + LoRA) | `jev-ja-lab-orchestrate` / `-workflow` | `configs/eval/hopper-series.yaml`。`peft`が必要(`uv pip install peft`)。アダプタは研究・デモ用途のみ |
-| `decider` (Mapika/decider-4b v2) | `jev-ja-lab-orchestrate` / `-workflow` | `configs/eval/decider-series.yaml`。`uv pip install --no-deps decider-ai`(numpy固定を避けるため)。`revision`でv1/v2/main(v2.1)を切替 |
+| `hopper` (HopitAI/hopper、Qwen3.5-4B + LoRA) | `jev-ja-lab-orchestrate` / `-workflow` | `configs/eval/hopper-series.yaml`。extra `hopper`(peft)が必要。アダプタは研究・デモ用途のみ |
+| `decider` (Mapika/decider-4b v2) | `jev-ja-lab-orchestrate` / `-workflow` | `configs/eval/decider-series.yaml`。extra `decider` + `pip install --no-deps decider-ai`(numpy固定を避けるため)。`revision`でv1/v2/main(v2.1)を切替 |
 | `embedding` / `laya` / `jevlike` / `laya-bert` / `masked-lm` | `jev-ja-lab-orchestrate` / `-workflow` | frozen encoder系、`primitive`+`head_path`等の追加設定が要る |
 
 `jev-ja-lab-eval`のCLIが直接サポートしない手法(embedding/laya/jevlike/laya-bert/

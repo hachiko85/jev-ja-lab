@@ -17,7 +17,8 @@ from typing import Any
 
 from openjev_ja.common import BenchmarkItem
 from openjev_ja.eval.local_data import load_local_benchmark
-from openjev_ja.methods.laya_bert.model import build_model, encode
+from openjev_ja.methods.laya_bert.model import build_model
+from openjev_ja.methods.laya_bert.model import forward_logits as _model_forward_logits
 
 DEFAULT_SOURCES: dict[str, dict[str, Any]] = {
     "choice": {
@@ -67,21 +68,7 @@ def _split_train_val(
 
 
 def _forward_logits(model: Any, tokenizer: Any, device: str, item: BenchmarkItem, primitive: str):
-    from laya.common import collate_items
-
-    encoded = encode(tokenizer, item.question, item.options, primitive)
-    if encoded is None:
-        return None
-    batch = collate_items([[encoded]], tokenizer.pad_token_id)
-    logits, _ = model(
-        batch["input_ids"].to(device),
-        batch["attention_mask"].to(device),
-        batch["marker_pos"].to(device),
-        batch["marker_mask"].to(device),
-        batch["qtype"].to(device),
-        detach_encoder=True,
-    )
-    return logits[0, : len(item.options)]
+    return _model_forward_logits(model, tokenizer, device, item.question, item.options, primitive)
 
 
 def _evaluate(

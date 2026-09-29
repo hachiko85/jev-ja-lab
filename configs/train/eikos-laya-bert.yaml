@@ -1,0 +1,45 @@
+version: 1
+
+# Trains laya's own DecisionModel head (see methods.laya_bert) on a frozen modernbert-ja
+# encoder, on the Japanese-language rows of the eikos-decisions corpus, one model per
+# primitive, 5-fold cross-validated. Run:
+#   uv run jev-ja-lab-train-workflow --config configs/train/eikos-laya-bert.yaml
+# Results: results/train-eikos-laya-bert-modernbert/<model-id>/{summary.json, fold-<k>.pt}
+
+runtime:
+  run_name: train-eikos-laya-bert-modernbert
+  output_root: results
+  seed: 42
+  folds: 5
+  epochs: 3
+  lr: 0.001
+  device: cuda
+  log_every: 1000
+
+corpus:
+  format: eikos
+  lang: Japanese
+  paths:
+    - datasets/eikos-decisions-ja-clean-20260928/data/core/train.jsonl
+    - datasets/eikos-decisions-ja-clean-20260928/data/core/validation.jsonl
+    - datasets/eikos-decisions-ja-clean-20260928/data/core/heldout.jsonl
+
+models:
+  - id: laya-bert-modernbert-ja-eikos-noul
+    architecture: laya-bert
+    repo_id: sbintuitions/modernbert-ja-310m
+    revision: 77675fc96a7e445e982e2ba90246b816efc74ec6
+    primitive: noul
+    head_layers: 2
+  - id: laya-bert-modernbert-ja-eikos-choice
+    architecture: laya-bert
+    repo_id: sbintuitions/modernbert-ja-310m
+    revision: 77675fc96a7e445e982e2ba90246b816efc74ec6
+    primitive: choice
+    head_layers: 2
+  - id: laya-bert-modernbert-ja-eikos-score
+    architecture: laya-bert
+    repo_id: sbintuitions/modernbert-ja-310m
+    revision: 77675fc96a7e445e982e2ba90246b816efc74ec6
+    primitive: score
+    head_layers: 2

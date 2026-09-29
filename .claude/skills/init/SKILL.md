@@ -14,9 +14,13 @@ description: jev-ja-labの開発環境を新規セットアップする、また
 
 2. **依存関係インストール**:
    ```bash
-   uv sync --extra eval --extra viz --extra orchestrate --extra dev
+   uv sync --extra <library> --extra dev
    ```
-   `pip install -e ".[eval,viz,orchestrate,dev]"` でも同等(uv不使用環境)。
+   `<library>` は評価したいライブラリの extra(`jev` / `semif` / `semif-ja` / `bert` / `embedding` / `openjev` /
+   `clm` / `hopper` / `decider` / `laya` / `laya-bert` / `jevlike`、全部なら `all`)。そのライブラリに必要な依存関係だけが
+   入る。`pip install -e ".[semif,dev]"` でも同等(uv不使用環境)。decider は `pip install --no-deps decider-ai` を別途実行。
+   新しいライブラリ(scorer)を追加した場合は、同名の extra を `pyproject.toml` に足し、`tests/unit/test_extras.py`
+   の対応表にも追記する。
 
 3. **GPU確認**: `nvidia-smi` を実行し、GPUの有無を確認する。
    - GPUがあるのに`uv sync`がCPU版torchを解決した場合(`python -c "import torch;

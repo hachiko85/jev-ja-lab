@@ -1,7 +1,6 @@
-"""Shared chart branding: single-line footer (logo, author, project+version,
-repo URL, QR code) used by scripts/build_final_charts.py and any other
-comparison chart, so every generated figure carries the same footer.
-"""
+"""Shared chart theme (plain white background) and the optional branded footer
+(logo, author, project+version, repo URL, QR code). The final comparison charts use the
+plain theme without the footer."""
 
 from __future__ import annotations
 
@@ -19,11 +18,11 @@ AUTHOR = "hachiko85"
 LOGO_PATH = ROOT / "assets/branding/watermark_circle.png"
 _QR_CACHE_PATH = ROOT / "assets/branding/.repo_qr_cache.png"
 
-FIG_BG = "#12151c"
-PLOT_BG = "#1b2028"
-TEXT = "#e8eaed"
-MUTED = "#9aa2b1"
-GRID = "#333a46"
+FIG_BG = "#ffffff"
+PLOT_BG = "#ffffff"
+TEXT = "#1f2328"
+MUTED = "#57606a"
+GRID = "#d0d7de"
 
 
 @lru_cache(maxsize=1)

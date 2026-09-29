@@ -26,6 +26,9 @@ RUNS: list[tuple[str, list[str] | None]] = [
     ("eval-bert-series", None),
     ("eval-hopper-series", None),
     ("eval-decider-series", None),
+    ("eval-decider-fewshot-series", None),
+    ("eval-clm-series", None),
+    ("eval-lev-series", None),
     ("eval-primitives-20260918", ["qwen3.5-4b"]),  # pre-existing next_token_logit baseline
 ]
 
