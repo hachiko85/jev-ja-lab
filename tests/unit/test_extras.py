@@ -17,6 +17,7 @@ SCORER_EXTRAS = {
     "decider": "decider",
     "clm": "clm",
     "lev": "lev",
+    "jeff": "jeff",
     "semif-logit": "semif",
     "qwen-direct": "semif-ja",
     "masked-lm": "bert",

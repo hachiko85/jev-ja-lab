@@ -45,6 +45,27 @@ SERIES = {
             "dtype": "bfloat16",
         },
     },
+    "jeff-qwen3.5-0.8b": {
+        "run_name": "eval-jeff-qwen3.5-0.8b-series",
+        "model_id": "jeff-qwen3.5-0.8b",
+        "label": "Jeff (Qwen3.5-0.8B)",
+        "color": "#aec7e8",
+        "entry": {"scorer": "jeff", "model_name": "qwen3.5-0.8b", "dtype": "bfloat16"},
+    },
+    "jeff-qwen3.5-2b": {
+        "run_name": "eval-jeff-qwen3.5-2b-series",
+        "model_id": "jeff-qwen3.5-2b",
+        "label": "Jeff (Qwen3.5-2B)",
+        "color": "#ffbb78",
+        "entry": {"scorer": "jeff", "model_name": "qwen3.5-2b", "dtype": "bfloat16"},
+    },
+    "jeff-gemma4-e2b": {
+        "run_name": "eval-jeff-gemma4-e2b-series",
+        "model_id": "jeff-gemma4-e2b",
+        "label": "Jeff (Gemma4-E2B)",
+        "color": "#98df8a",
+        "entry": {"scorer": "jeff", "model_name": "gemma4-e2b", "dtype": "bfloat16"},
+    },
     "lev": {
         "run_name": "eval-lev-series",
         "model_id": "lev-4b",
