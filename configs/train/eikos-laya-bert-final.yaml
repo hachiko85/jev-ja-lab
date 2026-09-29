@@ -1,0 +1,45 @@
+version: 1
+
+# Same recipe as eikos-laya-bert.yaml (which cross-validates it, see that file's summary for
+# the generalization numbers within eikos), but folds: 1 -- trains one production head per
+# primitive on every Japanese row, to be benchmarked externally on the standard jev-ja-lab
+# profile (configs/eval/laya-bert-eikos-modernbert-ja-series.yaml).
+#   uv run jev-ja-lab-train-workflow --config configs/train/eikos-laya-bert-final.yaml
+
+runtime:
+  run_name: train-eikos-laya-bert-modernbert-final
+  output_root: results
+  seed: 42
+  folds: 1
+  epochs: 3
+  lr: 0.001
+  device: cuda
+  log_every: 1000
+
+corpus:
+  format: eikos
+  lang: Japanese
+  paths:
+    - datasets/eikos-decisions-ja-clean-20260928/data/core/train.jsonl
+    - datasets/eikos-decisions-ja-clean-20260928/data/core/validation.jsonl
+    - datasets/eikos-decisions-ja-clean-20260928/data/core/heldout.jsonl
+
+models:
+  - id: laya-bert-modernbert-ja-eikos-noul
+    architecture: laya-bert
+    repo_id: sbintuitions/modernbert-ja-310m
+    revision: 77675fc96a7e445e982e2ba90246b816efc74ec6
+    primitive: noul
+    head_layers: 2
+  - id: laya-bert-modernbert-ja-eikos-choice
+    architecture: laya-bert
+    repo_id: sbintuitions/modernbert-ja-310m
+    revision: 77675fc96a7e445e982e2ba90246b816efc74ec6
+    primitive: choice
+    head_layers: 2
+  - id: laya-bert-modernbert-ja-eikos-score
+    architecture: laya-bert
+    repo_id: sbintuitions/modernbert-ja-310m
+    revision: 77675fc96a7e445e982e2ba90246b816efc74ec6
+    primitive: score
+    head_layers: 2

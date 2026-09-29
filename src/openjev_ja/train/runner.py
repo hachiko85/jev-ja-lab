@@ -139,7 +139,24 @@ def cross_validate(
     build_kwargs: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """One fold at a time (`train_one_fold`); -> per-fold results plus the mean/std of every
-    val_metrics key across folds (the number to report for this model+primitive)."""
+    val_metrics key across folds (the number to report for this model+primitive).
+
+    `folds=1` skips cross-validation and trains a single "production" model on every item
+    with nothing held out (no `summary`, since there is no val split to score) — use this once
+    cross-validation on the same data/architecture has already shown the recipe generalizes,
+    to spend every row on the model that then gets benchmarked externally.
+    """
+    if folds == 1:
+        result = train_one_fold(
+            architecture, model_name=model_name, primitive=primitive, train_items=items,
+            val_items=[], epochs=epochs, lr=lr, seed=seed, device=device, log_every=log_every,
+            build_kwargs=build_kwargs,
+        )
+        fold_results = [{**result, "fold": 0, "val_items": 0}]
+        return {
+            "architecture": architecture.name, "model": model_name, "primitive": primitive,
+            "folds": 1, "items": len(items), "fold_results": fold_results, "summary": {},
+        }
     splits = kfold_split(items, folds, seed=seed)
     fold_results = []
     for fold_index, (train_items, val_items) in enumerate(splits):
