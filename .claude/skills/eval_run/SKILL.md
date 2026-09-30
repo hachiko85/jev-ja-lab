@@ -21,6 +21,8 @@ description: 指定したモデル・手法(scorer)・データセットでベ�
 | `semif-logit` (semif zero-shot/few-shot) | `jev-ja-lab-orchestrate` / `-workflow` | `few_shot_count`はconfig側で指定 |
 | `hopper` (HopitAI/hopper、Qwen3.5-4B + LoRA) | `jev-ja-lab-orchestrate` / `-workflow` | `configs/eval/hopper-series.yaml`。extra `hopper`(peft)が必要。アダプタは研究・デモ用途のみ |
 | `decider` (Mapika/decider-4b v2) | `jev-ja-lab-orchestrate` / `-workflow` | `configs/eval/decider-series.yaml`。extra `decider` + `pip install --no-deps decider-ai`(numpy固定を避けるため)。`revision`でv1/v2/main(v2.1)を切替 |
+| `jeff` (firelex/jeff、Qwen3.5-0.8B/2B・Gemma4-E2B) | `jev-ja-lab-orchestrate` / `-workflow` | `configs/eval/jeff-{qwen3.5-0.8b,qwen3.5-2b,gemma4-e2b}-series.yaml`。extra `jeff` + `uv pip install --no-deps` で公式`jeff`パッケージとtorchvision(プロジェクトのtorchと同じCUDA版)を別途導入。フルウェイトfine-tuneでLoRA不要 |
+| `bekko-system-one` (hotchpotch/bekko-system-one-v0-400m) | `jev-ja-lab-orchestrate` / `-workflow` | `configs/eval/bekko-system-one-400m-series.yaml`。extra `bekko-system-one` + `sentence-transformers`/`scikit-learn`を`--no-deps`で別途導入。BERT系(Ettin reranker)、trust_remote_codeでHubの推奨inferenceクラスを読み込み |
 | `embedding` / `laya` / `jevlike` / `laya-bert` / `masked-lm` | `jev-ja-lab-orchestrate` / `-workflow` | frozen encoder系、`primitive`+`head_path`等の追加設定が要る |
 
 `jev-ja-lab-eval`のCLIが直接サポートしない手法(embedding/laya/jevlike/laya-bert/
