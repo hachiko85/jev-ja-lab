@@ -18,6 +18,7 @@ SCORER_EXTRAS = {
     "clm": "clm",
     "lev": "lev",
     "jeff": "jeff",
+    "bekko-system-one": "bekko-system-one",
     "semif-logit": "semif",
     "qwen-direct": "semif-ja",
     "masked-lm": "bert",

@@ -66,6 +66,13 @@ SERIES = {
         "color": "#98df8a",
         "entry": {"scorer": "jeff", "model_name": "gemma4-e2b", "dtype": "bfloat16"},
     },
+    "bekko-system-one-400m": {
+        "run_name": "eval-bekko-system-one-400m-series",
+        "model_id": "bekko-system-one-400m",
+        "label": "Bekko System One v0 (400M)",
+        "color": "#9edae5",
+        "entry": {"scorer": "bekko-system-one", "model_name": "400m", "dtype": "bfloat16"},
+    },
     "lev": {
         "run_name": "eval-lev-series",
         "model_id": "lev-4b",

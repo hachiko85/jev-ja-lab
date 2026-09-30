@@ -57,6 +57,7 @@ pytest
 | `clm` | Contrastive-LM/CLM | torch、transformers など |
 | `lev` | interfaze-ai/lev | 上記 + peft、公式 `lev` パッケージ(Python 3.12 以上) |
 | `jeff` | firelex/jeff(Qwen3.5-0.8B/2B、Gemma4-E2B) | 公式 `jeff` パッケージ(`--no-deps`で別途導入 + torchvision)。フルウェイト、LoRA不要 |
+| `bekko-system-one` | hotchpotch/bekko-system-one-v0-400m | `sentence-transformers`+`scikit-learn`を`--no-deps`で別途導入。custom_code(trust_remote_code)をHubから読み込み |
 | `hopper` | HopitAI/hopper | 上記 + peft |
 | `decider` | Mapika/decider-4b | 上記 + `pip install --no-deps decider-ai`(numpy 固定を避けるため別途) |
 | `laya` / `laya-bert` | laya | 上記 + laya |
@@ -208,6 +209,7 @@ uv run jev-ja-lab-train-workflow --config configs/train/eikos-laya-bert.yaml
 - Hopper: <https://huggingface.co/HopitAI/hopper>
 - Lev: <https://huggingface.co/interfaze-ai/lev> / <https://github.com/Abhinavexists/lev>
 - Jeff: <https://github.com/firelex/jeff>(モデル: mstrasser/Jeff-Qwen3.5-0.8B, -2B, -Gemma4-E2B)
+- Bekko System One: <https://huggingface.co/hotchpotch/bekko-system-one-v0-400m> / <https://github.com/hotchpotch/bekko-system-one>
 - CLM: <https://huggingface.co/Contrastive-LM/CLM-v0.1-8B> / <https://github.com/Contrastive-LM/CLM>
 - semif: <https://github.com/TheoLeeCJ/SemIf>
 - AlexWortega/openjev: <https://huggingface.co/AlexWortega/openjev>

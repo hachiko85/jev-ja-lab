@@ -14,6 +14,7 @@ import httpx
 from openjev_ja.common import DatasetUnavailableError
 from openjev_ja.eval.local_data import load_local_benchmark
 from openjev_ja.eval.runner import run_evaluation
+from openjev_ja.methods.bekko_system_one import BekkoSystemOneScorer
 from openjev_ja.methods.bert_masked_lm import MaskedLMScorer
 from openjev_ja.methods.clm import ClmScorer
 from openjev_ja.methods.clm.scorer import ENCODER_REVISION as CLM_ENCODER_REVISION
@@ -167,6 +168,17 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
             model_id=model.get("model_id"),
             few_shot_count=int(model.get("few_shot_count", 0)),
             datasets_root=str(runtime["datasets_root"]),
+        )
+    if scorer_name == "bekko-system-one":
+        if not model.get("primitive"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'bekko-system-one' requires 'primitive'"
+            )
+        return BekkoSystemOneScorer(
+            str(model.get("model_name", "400m")),
+            primitive=str(model["primitive"]),
+            device=device,
+            model_id=model.get("model_id"),
         )
     if scorer_name == "jeff":
         if not model.get("primitive"):

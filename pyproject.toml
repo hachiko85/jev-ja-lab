@@ -74,6 +74,14 @@ decider = ["jev-ja-lab[eval,orchestrate]"]
 # It also needs torchvision (for the Qwen3.5/Qwen3-VL processor, used even for text-only Gemma):
 #   uv pip install --index-url https://download.pytorch.org/whl/cu128 "torchvision==0.26.0"
 jeff = ["jev-ja-lab[eval,orchestrate]"]
+# hotchpotch/bekko-system-one-v0: custom trust_remote_code inference class, loaded via
+# transformers.dynamic_module_utils (the model's own recommended path). Needs
+# sentence-transformers + scikit-learn, installed --no-deps (sentence-transformers would
+# otherwise pull a newer torch and fight this project's CUDA build; scikit-learn is only
+# needed for sentence-transformers' own top-level import chain, not the decision logic):
+#   uv pip install --no-deps sentence-transformers==6.1.0
+#   uv pip install scikit-learn
+bekko-system-one = ["jev-ja-lab[eval,orchestrate]"]
 laya = [
   "jev-ja-lab[eval,orchestrate]",
   "laya>=0.3.5",
@@ -87,7 +95,7 @@ jevlike = [
   "jevlike[transformers] @ git+https://github.com/vinnylarouge/jevlike.git",
 ]
 all = [                       # every library above except the decider-ai step
-  "jev-ja-lab[jev,semif,semif-ja,bert,embedding,openjev,clm,lev,jeff,hopper,decider,laya,laya-bert,jevlike]",
+  "jev-ja-lab[jev,semif,semif-ja,bert,embedding,openjev,clm,lev,jeff,bekko-system-one,hopper,decider,laya,laya-bert,jevlike]",
 ]
 dev = [
   "pytest>=8.3",
