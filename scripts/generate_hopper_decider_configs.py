@@ -99,6 +99,33 @@ SERIES = {
             "dtype": "bfloat16",
         },
     },
+    "decider-ja-main-baseline": {
+        "run_name": "eval-decider-ja-main-baseline-series",
+        "model_id": "decider-4b-main-baseline",
+        "label": "decider-4b main (zero-shot, pre-QLoRA)",
+        "color": "#c49c94",
+        "entry": {
+            # the exact commit `Mapika/decider-4b` (no revision pin) resolved to when
+            # scripts/train_decider_ja_qlora.py trained from it -- the correct zero-shot
+            # baseline for that run (not decider-4b-v2, a different tagged commit).
+            "repo_id": "Mapika/decider-4b",
+            "revision": "eb5fbdfc9448473ec25e399882912863afbdb70e",
+            "scorer": "decider",
+            "dtype": "bfloat16",
+        },
+    },
+    "decider-ja-qlora": {
+        "run_name": "eval-decider-ja-qlora-series",
+        "model_id": "decider-4b-ja-qlora",
+        "label": "decider-4b + QLoRA (datasets/for-decider-ja)",
+        "color": "#d62728",
+        "entry": {
+            # scripts/merge_decider_ja_qlora.py's merged output, under models_root.
+            "path": "decider-ja-qlora",
+            "scorer": "decider",
+            "dtype": "bfloat16",
+        },
+    },
     "decider-fewshot": {
         "run_name": "eval-decider-fewshot-series",
         "model_id": "decider-4b-v2-2shot",
