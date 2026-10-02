@@ -107,6 +107,8 @@ class DeciderScorer:
             from huggingface_hub import snapshot_download
         except ImportError as exc:
             raise RuntimeError("Install the decider extra: pip install -e '.[decider]'") from exc
+        import os
+
         self.model_name = model_name
         self.revision = revision
         self.primitive = primitive
@@ -124,7 +126,10 @@ class DeciderScorer:
             self.few_shot = load_few_shot_examples(
                 primitive, datasets_root, few_shot_count, seed=few_shot_seed
             )
-        folder = snapshot_download(model_name, revision=revision)
+        # `model_name` doubles as a local checkpoint directory (e.g. a merged LoRA fine-tune
+        # under `models_root`/path, per orchestrate._model_reference) -- those load as-is,
+        # a Hub repo id still goes through snapshot_download as before.
+        folder = model_name if os.path.isdir(model_name) else snapshot_download(model_name, revision=revision)
         self.decider = Decider(
             folder, device=device, dtype=getattr(torch, dtype), use_graphs=use_graphs
         )
