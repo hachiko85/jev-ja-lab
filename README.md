@@ -12,6 +12,8 @@
 
 ## 📰 News
 
+- **2026-10-06** **Clef-Flash**(Cloudflare/clef-flash)の GGUF(Q4_K_M、ggml-org 変換)を評価対象に追加。llama.cpp の
+  `llama-server`(`/v1/systemone`)経由で実行。
 - **2026-09-27** **Lev**(interfaze-ai/lev)を評価対象に追加。
 - **2026-09-27** HelpSteer2-JA を Score に統合(Score 12 データセット、標準プロファイルは 35 データセット・75,384 件)。**CLM v0.1**(Contrastive-LM/CLM-v0.1-8B)を評価対象に追加。
 - **2026-09-26** 評価データセット [openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) を整備
@@ -56,6 +58,7 @@ pytest
 | `openjev` | AlexWortega/openjev | torch、transformers など |
 | `clm` | Contrastive-LM/CLM | torch、transformers など |
 | `lev` | interfaze-ai/lev | 上記 + peft、公式 `lev` パッケージ(Python 3.12 以上) |
+| `clef` | Cloudflare/clef-flash(HF 版は bitsandbytes 8bit、GGUF 版は llama.cpp) | bitsandbytes + torchvision(HF 版)。GGUF 版は llama.cpp b11430 以降の `llama-server`(CUDA ビルド)を `models/llama.cpp/` に別途配置 |
 | `jeff` | firelex/jeff(Qwen3.5-0.8B/2B、Gemma4-E2B) | 公式 `jeff` パッケージ(`--no-deps`で別途導入 + torchvision)。フルウェイト、LoRA不要 |
 | `bekko-system-one` | hotchpotch/bekko-system-one-v0-400m | `sentence-transformers`+`scikit-learn`を`--no-deps`で別途導入。custom_code(trust_remote_code)をHubから読み込み |
 | `hopper` | HopitAI/hopper | 上記 + peft |
@@ -104,11 +107,12 @@ Jev API を評価する場合は `.env` に `TYPESAFE_API_KEY` / `TYPESAFE_API_U
 
 ### 🏆 Results
 
-判定原理が異なる 10 ライブラリを、同一のデータ・条件で比較しています(2026-09-27 時点、0-shot)。
+判定原理が異なる 11 ライブラリを、同一のデータ・条件で比較しています(2026-10-06 時点、0-shot)。
 
 | ライブラリ | Overall | Noul | Choice | Score | ベースモデル | パラメータ数 | 推論時間(ms/件) |
 |---|---:|---:|---:|---:|---|---:|---:|
 | **Jev v1.13.0** | **0.790** | 0.739 | 0.847 | 0.785 | TypeSafe Jev API | 非公開 | 229.12 |
+| Clef-Flash GGUF Q4_K_M | 0.729 | 0.669 | 0.749 | 0.768 | Qwen3.5-9B + 決定ヘッド(Cloudflare/clef-flash、GGUF Q4_K_M) | 9.08B | 62.16 |
 | decider v2 | 0.690 | 0.637 | 0.653 | 0.781 | Qwen3.5-4B-Base(Mapika/decider-4b v2) | 4.2B | 187.12 |
 | Lev | 0.659 | 0.667 | 0.565 | 0.744 | Qwen3.5-4B + LoRA(interfaze-ai/lev) | 4.66B | 119.94 |
 | Hopper 0-shot | 0.653 | 0.664 | 0.551 | 0.744 | Qwen3.5-4B + LoRA(HopitAI/hopper) | 4.66B | 84.69 |
@@ -141,9 +145,11 @@ benchmark-v1 の 2,500 件)を合わせた 12 データセットの平均です�
 ### 💡 Key Findings
 
 - **Jev(v1.13.0)が全ライブラリ中トップ**(0.790)。外部 API のためパラメータ数は非公開で、推論時間も最長です。
-- **decider-4b v2 がローカル実行で最良**(0.690)。同じ Qwen3.5-4B 系の Hopper(0.653)、semif-ja(0.621)より高く、
+- **Clef-Flash(GGUF Q4_K_M)がローカル実行で最良**(0.729、2 位)。4bit 量子化でも HF 版 8bit(0.727)と差がなく、
+  llama.cpp 経由で約 62ms/件と、HF 版(約 213ms/件)の約 3.4 倍速です。特に Choice(0.749)が強い。
+- **decider-4b v2 は 3 位**(0.690)。同じ Qwen3.5-4B 系の Hopper(0.653)、semif-ja(0.621)より高く、
   Choice で特に差がつきます。
-- **Lev(Qwen3.5-4B + LoRA)は英語学習ながら日本語でも実用的**(Overall 0.659、3 位)。同じ Qwen3.5-4B 系の Hopper
+- **Lev(Qwen3.5-4B + LoRA)は英語学習ながら日本語でも実用的**(Overall 0.659、4 位)。同じ Qwen3.5-4B 系の Hopper
   (0.653)を上回り、decider には届きません。推論時間は約 120ms/件です。
 - **CLM v0.1 は日本語では機能しなかった**(Overall 0.409、Score は 0.5 前後で判別できていない)。英語で学習されたモデルで、
   Choice も accuracy 0.29 と低い。推論時間は約 89ms/件。
@@ -207,6 +213,7 @@ uv run jev-ja-lab-train-workflow --config configs/train/eikos-laya-bert.yaml
 
 - decider-4b: <https://huggingface.co/Mapika/decider-4b> / <https://github.com/Mapika/decider>
 - Hopper: <https://huggingface.co/HopitAI/hopper>
+- Clef-Flash: <https://huggingface.co/Cloudflare/clef-flash>(GGUF: <https://huggingface.co/ggml-org/Clef-Flash-GGUF>、実行: <https://github.com/ggml-org/llama.cpp>)
 - Lev: <https://huggingface.co/interfaze-ai/lev> / <https://github.com/Abhinavexists/lev>
 - Jeff: <https://github.com/firelex/jeff>(モデル: mstrasser/Jeff-Qwen3.5-0.8B, -2B, -Gemma4-E2B)
 - Bekko System One: <https://huggingface.co/hotchpotch/bekko-system-one-v0-400m> / <https://github.com/hotchpotch/bekko-system-one>

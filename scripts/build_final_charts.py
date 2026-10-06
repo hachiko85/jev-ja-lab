@@ -99,6 +99,15 @@ GROUPS = [
         "params_b": 4.66, "latency_ms": 119.94,
     },
     {
+        # Cloudflare/clef-flash, ggml-org's GGUF conversion (Q4_K_M backbone, Q8_0 decision head)
+        # run by llama.cpp's llama-server /v1/systemone. Standard 35-dataset profile, so
+        # `latency_ms` is the item-weighted mean over all 75,384 items.
+        "method": "Clef-Flash(GGUF Q4_K_M)",
+        "label_top": "Clef-Flash GGUF Q4_K_M", "label_bottom": "Qwen3.5-9B + 決定ヘッド (9.08B)",
+        "noul": "clef-flash-gguf-q4km-noul", "choice": "clef-flash-gguf-q4km-choice",
+        "score": "clef-flash-gguf-q4km-score", "params_b": 9.08, "latency_ms": 62.16,
+    },
+    {
         # Version pinned from the API's own response_model field, not guessed.
         "method": "Jev(jev-1.13.0)",
         "helpsteer": "jev-latest", "helpsteer_run": "eval-helpsteer-jev",

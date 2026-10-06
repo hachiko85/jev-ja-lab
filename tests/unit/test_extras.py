@@ -16,6 +16,8 @@ SCORER_EXTRAS = {
     "hopper": "hopper",
     "decider": "decider",
     "clm": "clm",
+    "clef": "clef",
+    "clef-gguf": "clef",
     "lev": "lev",
     "jeff": "jeff",
     "bekko-system-one": "bekko-system-one",

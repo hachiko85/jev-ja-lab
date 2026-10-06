@@ -16,6 +16,7 @@ from openjev_ja.eval.local_data import load_local_benchmark
 from openjev_ja.eval.runner import run_evaluation
 from openjev_ja.methods.bekko_system_one import BekkoSystemOneScorer
 from openjev_ja.methods.bert_masked_lm import MaskedLMScorer
+from openjev_ja.methods.clef import ClefGgufScorer, ClefScorer
 from openjev_ja.methods.clm import ClmScorer
 from openjev_ja.methods.clm.scorer import ENCODER_REVISION as CLM_ENCODER_REVISION
 from openjev_ja.methods.decider import DeciderScorer
@@ -168,6 +169,31 @@ def _create_scorer(model: dict[str, Any], runtime: dict[str, Any], device: str) 
             model_id=model.get("model_id"),
             few_shot_count=int(model.get("few_shot_count", 0)),
             datasets_root=str(runtime["datasets_root"]),
+        )
+    if scorer_name == "clef-gguf":
+        if not model.get("primitive"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'clef-gguf' requires 'primitive'"
+            )
+        return ClefGgufScorer(
+            str(model.get("model_name", "q4_k_m")),
+            primitive=str(model["primitive"]),
+            device=device,
+            server_path=str(model.get("server_path", "models/llama.cpp/b11430/llama-server.exe")),
+            model_id=model.get("model_id"),
+        )
+    if scorer_name == "clef":
+        if not model.get("primitive"):
+            raise OrchestrationError(
+                f"model {model.get('id')!r}: scorer 'clef' requires 'primitive'"
+            )
+        return ClefScorer(
+            str(model.get("model_name", "flash")),
+            primitive=str(model["primitive"]),
+            device=device,
+            quantization=str(model.get("quantization", "8bit")),
+            gpu_memory_gib=float(model.get("gpu_memory_gib", 14.0)),
+            model_id=model.get("model_id"),
         )
     if scorer_name == "bekko-system-one":
         if not model.get("primitive"):

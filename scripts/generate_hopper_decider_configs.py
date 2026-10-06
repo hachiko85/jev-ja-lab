@@ -99,6 +99,20 @@ SERIES = {
             "dtype": "bfloat16",
         },
     },
+    "clef-flash": {
+        "run_name": "eval-clef-flash-series",
+        "model_id": "clef-flash",
+        "label": "Clef-Flash (Qwen3.5-9B)",
+        "color": "#f6821f",
+        "entry": {"scorer": "clef", "model_name": "flash", "quantization": "8bit", "dtype": "bfloat16"},
+    },
+    "clef-flash-gguf-q4km": {
+        "run_name": "eval-clef-flash-gguf-q4km-series",
+        "model_id": "clef-flash-gguf-q4km",
+        "label": "Clef-Flash GGUF Q4_K_M (llama.cpp)",
+        "color": "#fbad41",
+        "entry": {"scorer": "clef-gguf", "model_name": "q4_k_m"},
+    },
     "decider-ja-main-baseline": {
         "run_name": "eval-decider-ja-main-baseline-series",
         "model_id": "decider-4b-main-baseline",

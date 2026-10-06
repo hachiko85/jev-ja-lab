@@ -74,6 +74,16 @@ decider = ["jev-ja-lab[eval,orchestrate]"]
 # It also needs torchvision (for the Qwen3.5/Qwen3-VL processor, used even for text-only Gemma):
 #   uv pip install --index-url https://download.pytorch.org/whl/cu128 "torchvision==0.26.0"
 jeff = ["jev-ja-lab[eval,orchestrate]"]
+# Cloudflare/clef-flash (Qwen3.5-9B + joint schema head): loaded through the release's own
+# joint_schema_model.py. Needs bitsandbytes (the bf16 backbone is ~19GB, so 8bit/4bit is the
+# way to fit a 16GB GPU) and, like jeff, torchvision for the Qwen3.5 image/video processor,
+# installed from the CUDA index matching this project's torch:
+#   uv pip install --index-url https://download.pytorch.org/whl/cu128 "torchvision==0.26.0"
+clef = [
+  "jev-ja-lab[eval,orchestrate]",
+  "bitsandbytes>=0.45",
+  "pillow",
+]
 # hotchpotch/bekko-system-one-v0: custom trust_remote_code inference class, loaded via
 # transformers.dynamic_module_utils (the model's own recommended path). Needs
 # sentence-transformers + scikit-learn, installed --no-deps (sentence-transformers would
@@ -95,7 +105,7 @@ jevlike = [
   "jevlike[transformers] @ git+https://github.com/vinnylarouge/jevlike.git",
 ]
 all = [                       # every library above except the decider-ai step
-  "jev-ja-lab[jev,semif,semif-ja,bert,embedding,openjev,clm,lev,jeff,bekko-system-one,hopper,decider,laya,laya-bert,jevlike]",
+  "jev-ja-lab[jev,semif,semif-ja,bert,embedding,openjev,clm,clef,lev,jeff,bekko-system-one,hopper,decider,laya,laya-bert,jevlike]",
 ]
 dev = [
   "pytest>=8.3",
