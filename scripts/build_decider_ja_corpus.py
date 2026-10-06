@@ -33,8 +33,8 @@ def _sorted_labels(criteria: list[dict]) -> list[str]:
     return [c["label"] for c in sorted(criteria, key=lambda c: c["index"])]
 
 
-def _programmatic_examples() -> list[Example]:
-    rows = pq.read_table(PROGRAMMATIC).to_pylist()
+def _programmatic_examples(path: str = PROGRAMMATIC) -> list[Example]:
+    rows = pq.read_table(path).to_pylist()
     out = []
     for row in rows:
         options = _sorted_labels(row["criteria"])
@@ -50,8 +50,8 @@ def _programmatic_examples() -> list[Example]:
     return out
 
 
-def _seedummy_examples() -> list[Example]:
-    rows = pq.read_table(SEEDUMMY).to_pylist()
+def _seedummy_examples(path: str = SEEDUMMY) -> list[Example]:
+    rows = pq.read_table(path).to_pylist()
     out = []
     for row in rows:
         context = f"{row['document_title']}\n\n{row['document_text']}"
@@ -83,10 +83,14 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="datasets/for-decider-ja/corpus.pkl")
     ap.add_argument("--seed", type=int, default=SEED)
+    ap.add_argument("--seedummy", default=SEEDUMMY, help="SeeDummy parquet path")
+    ap.add_argument("--no-programmatic", action="store_true", help="exclude programmatic-all.parquet")
     a = ap.parse_args()
     rng = random.Random(a.seed)
 
-    examples = _programmatic_examples() + _seedummy_examples()
+    examples = _seedummy_examples(a.seedummy)
+    if not a.no_programmatic:
+        examples = _programmatic_examples() + examples
     train, evals = _split(examples, rng)
 
     print(f"[corpus] {len(examples)} examples -> {len(train)} train, "
