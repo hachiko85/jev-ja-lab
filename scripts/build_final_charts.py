@@ -103,6 +103,16 @@ GROUPS = [
         "score": "clef-flash-gguf-q4km-score", "params_b": 9.08, "latency_ms": 62.16,
     },
     {
+        # Cloudflare/clef (the large sibling of clef-flash), ggml-org's GGUF at Q4_K_M. 19.2GB, so
+        # only part of the layers fit the 16GB GPU (-ngl 54): the latency is the item-weighted mean
+        # over all 75,384 items (HelpSteer2 long texts alone take ~2.5s). Parameter count is
+        # estimated from the BF16 GGUF size (54.06GB at 2 bytes/param ~= 27B).
+        "method": "Clef(GGUF Q4_K_M)",
+        "label_top": "Clef GGUF Q4_K_M", "label_bottom": "Qwen3.5-27B級 + 決定ヘッド (27B)",
+        "noul": "clef-large-gguf-q4km-noul", "choice": "clef-large-gguf-q4km-choice",
+        "score": "clef-large-gguf-q4km-score", "params_b": 27.0, "latency_ms": 684.79,
+    },
+    {
         # LiquidAI/d1-3B (decision model on LFM2.5-VL-3B), Liquid AI's GGUF export run by
         # llama.cpp's llama-server /v1/systemone. Standard 35-dataset profile (item-weighted latency).
         "method": "d1-3B(GGUF Q8_0)",
@@ -281,7 +291,7 @@ def build_ranking_chart(rows: list[dict]) -> None:
     colors = [highlight if i == len(rows) - 1 else bar_color for i in range(len(rows))]
     y_pos = list(range(len(rows)))
 
-    fig, ax = plt.subplots(figsize=(13, 8))
+    fig, ax = plt.subplots(figsize=(13, max(8, 0.65 * len(rows))))  # two-line labels need ~0.65in/row
     fig.patch.set_facecolor(FIG_BG)
     ax.set_facecolor(PLOT_BG)
     bars = ax.barh(y_pos, overall, color=colors, height=0.6)
@@ -348,7 +358,7 @@ def build_scatter_and_latency_charts(rows: list[dict]) -> None:
     rows_sorted = sorted(rows, key=lambda r: r["latency_ms"])
     latencies = [r["latency_ms"] for r in rows_sorted]
     y_pos = list(range(len(rows_sorted)))
-    fig, ax = plt.subplots(figsize=(13, 8))
+    fig, ax = plt.subplots(figsize=(13, max(8, 0.65 * len(rows_sorted))))
     fig.patch.set_facecolor(FIG_BG)
     ax.set_facecolor(PLOT_BG)
     bars = ax.barh(y_pos, latencies, color="#e15759", height=0.6)
