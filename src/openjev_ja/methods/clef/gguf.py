@@ -3,6 +3,7 @@ from __future__ import annotations
 import atexit
 import socket
 import subprocess
+import tempfile
 import time
 from pathlib import Path
 
@@ -19,6 +20,9 @@ RELEASES: dict[str, tuple[str, str, str]] = {
     "q4_k_m": ("ggml-org/Clef-Flash-GGUF", "4a192915ef971886004b5b13294f2b4c7a7fc39d", "Clef-Flash-Q4_K_M.gguf"),
     "q8_0": ("ggml-org/Clef-Flash-GGUF", "4a192915ef971886004b5b13294f2b4c7a7fc39d", "Clef-Flash-Q8_0.gguf"),
     "bf16": ("ggml-org/Clef-Flash-GGUF", "4a192915ef971886004b5b13294f2b4c7a7fc39d", "Clef-Flash-BF16.gguf"),
+    # Cloudflare/clef (the large sibling): 19.2GB at Q4_K_M, more than a 16GB GPU holds, so
+    # llama.cpp must offload only part of the layers (use `n_gpu_layers=None`, the automatic split).
+    "large_q4_k_m": ("ggml-org/Clef-GGUF", "63840a1a68cb7084c88610cffc328509356b04cb", "Clef-Q4_K_M.gguf"),
 }
 DEFAULT_SERVER = "models/llama.cpp/b11430/llama-server.exe"
 
@@ -38,6 +42,10 @@ class ClefGgufScorer:
     """
 
     name = "clef-gguf"
+    # Overridable by other llama.cpp `/v1/systemone` decision models (see methods/d1).
+    releases = RELEASES
+    base_model = "Cloudflare/clef-flash"
+    model_id_prefix = "clef-flash-gguf"
 
     def __init__(
         self,
@@ -46,7 +54,7 @@ class ClefGgufScorer:
         primitive: str,
         device: str = "cuda",
         server_path: str = DEFAULT_SERVER,
-        n_gpu_layers: int = 99,
+        n_gpu_layers: int | None = 99,
         context_size: int = 32768,
         batch_size: int = 16384,
         startup_timeout_s: float = 300.0,
@@ -54,8 +62,8 @@ class ClefGgufScorer:
     ) -> None:
         if primitive not in PRIMITIVES:
             raise ValueError(f"unsupported primitive: {primitive}")
-        if model_name not in RELEASES:
-            raise ValueError(f"unknown clef GGUF variant {model_name!r}; choose one of {sorted(RELEASES)}")
+        if model_name not in self.releases:
+            raise ValueError(f"unknown GGUF variant {model_name!r}; choose one of {sorted(self.releases)}")
         server = Path(server_path)
         if not server.exists():
             raise RuntimeError(
@@ -67,15 +75,23 @@ class ClefGgufScorer:
         except ImportError as exc:
             raise RuntimeError("Install the clef extra: pip install -e '.[clef]'") from exc
         self.model_name = model_name
-        self.repo_id, self.revision, filename = RELEASES[model_name]
+        self.repo_id, self.revision, filename = self.releases[model_name]
         self.primitive = primitive
         self.device = device
-        self.model_id = model_id or f"clef-flash-gguf-{model_name}"
+        if self.repo_id == "ggml-org/Clef-GGUF":
+            self.base_model = "Cloudflare/clef"
+        self.model_id = model_id or f"{self.model_id_prefix}-{model_name}"
         self.gguf_path = hf_hub_download(self.repo_id, filename, revision=self.revision)
         self.port = _free_port()
+        self.log_path = Path(tempfile.gettempdir()) / f"llama-server-{self.model_id}-{self.port}.log"
+        self._log = open(self.log_path, "wb")  # kept for diagnosing server exits/500s
         self._process = subprocess.Popen(
             [
-                str(server), "-m", self.gguf_path, "-ngl", str(n_gpu_layers),
+                str(server), "-m", self.gguf_path,
+                # `n_gpu_layers=None` omits -ngl so llama.cpp fits the layer split to free VRAM itself
+                # (a model larger than the GPU, e.g. Clef Q4_K_M: forcing `-ngl 99` spilled into
+                # shared system memory at ~1.5s/item, the automatic split runs at ~0.4s/item).
+                *(["-ngl", str(n_gpu_layers)] if n_gpu_layers is not None else []),
                 "-c", str(context_size), "--parallel", "1",
                 # a decision model reads the whole prompt in one non-causal pass, so the physical
                 # batch must hold the longest prompt (the default 512 returns HTTP 500 on
@@ -83,8 +99,8 @@ class ClefGgufScorer:
                 "-b", str(batch_size), "-ub", str(batch_size),
                 "--host", "127.0.0.1", "--port", str(self.port),
             ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stdout=self._log,
+            stderr=subprocess.STDOUT,
         )
         atexit.register(self.close)
         self._client = httpx.Client(base_url=f"http://127.0.0.1:{self.port}", timeout=300.0)
@@ -123,7 +139,8 @@ class ClefGgufScorer:
             "/v1/systemone", json={"model": self.model_id, "state": state, "questions": questions}
         )
         latency_ms = (time.perf_counter() - started) * 1000
-        response.raise_for_status()
+        if response.status_code >= 400:  # llama-server explains why in the body (e.g. batch too small)
+            raise RuntimeError(f"llama-server /v1/systemone {response.status_code}: {response.text[:500]}")
         body = response.json()
         answer = body["answers"]["answer"]
         scores, probabilities, predicted = parse_answer(self.primitive, answer, len(options))
@@ -141,7 +158,7 @@ class ClefGgufScorer:
             "model": self.model_id,
             "release": f"{self.repo_id}@{self.revision}",
             "gguf": Path(self.gguf_path).name,
-            "base_model": "Cloudflare/clef-flash",
+            "base_model": self.base_model,
             "primitive": self.primitive,
             "device": self.device,
             "runtime": "llama.cpp llama-server /v1/systemone",

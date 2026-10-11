@@ -12,6 +12,8 @@
 
 ## 📰 News
 
+- **2026-10-11** **d1-3B**(LiquidAI/d1-3B、GGUF の Q8_0 と Q4_K_M)と **d1-omni-600M**(Q8_0)を評価対象に追加。比較から
+  modernbert-ja-310m を外しました。
 - **2026-10-06** **Clef-Flash**(Cloudflare/clef-flash)の GGUF(Q4_K_M、ggml-org 変換)を評価対象に追加。llama.cpp の
   `llama-server`(`/v1/systemone`)経由で実行。
 - **2026-09-27** **Lev**(interfaze-ai/lev)を評価対象に追加。
@@ -59,6 +61,7 @@ pytest
 | `clm` | Contrastive-LM/CLM | torch、transformers など |
 | `lev` | interfaze-ai/lev | 上記 + peft、公式 `lev` パッケージ(Python 3.12 以上) |
 | `clef` | Cloudflare/clef-flash(HF 版は bitsandbytes 8bit、GGUF 版は llama.cpp) | bitsandbytes + torchvision(HF 版)。GGUF 版は llama.cpp b11430 以降の `llama-server`(CUDA ビルド)を `models/llama.cpp/` に別途配置 |
+| `d1` | LiquidAI/d1-3B、d1-omni-600M(GGUF) | Python 側の追加依存なし。llama.cpp b11541 以降の `llama-server`(CUDA ビルド)を `models/llama.cpp/` に別途配置(b11485 は d1-3B のみ対応) |
 | `jeff` | firelex/jeff(Qwen3.5-0.8B/2B、Gemma4-E2B) | 公式 `jeff` パッケージ(`--no-deps`で別途導入 + torchvision)。フルウェイト、LoRA不要 |
 | `bekko-system-one` | hotchpotch/bekko-system-one-v0-400m | `sentence-transformers`+`scikit-learn`を`--no-deps`で別途導入。custom_code(trust_remote_code)をHubから読み込み |
 | `hopper` | HopitAI/hopper | 上記 + peft |
@@ -107,25 +110,28 @@ Jev API を評価する場合は `.env` に `TYPESAFE_API_KEY` / `TYPESAFE_API_U
 
 ### 🏆 Results
 
-判定原理が異なる 11 ライブラリを、同一のデータ・条件で比較しています(2026-10-06 時点、0-shot)。
+判定原理が異なる 13 件(量子化違いを含む)を、同一のデータ・条件で比較しています(2026-10-11 時点、0-shot)。
 
 | ライブラリ | Overall | Noul | Choice | Score | ベースモデル | パラメータ数 | 推論時間(ms/件) |
 |---|---:|---:|---:|---:|---|---:|---:|
 | **Jev v1.13.0** | **0.790** | 0.739 | 0.847 | 0.785 | TypeSafe Jev API | 非公開 | 229.12 |
 | Clef-Flash GGUF Q4_K_M | 0.729 | 0.669 | 0.749 | 0.768 | Qwen3.5-9B + 決定ヘッド(Cloudflare/clef-flash、GGUF Q4_K_M) | 9.08B | 62.16 |
 | decider v2 | 0.690 | 0.637 | 0.653 | 0.781 | Qwen3.5-4B-Base(Mapika/decider-4b v2) | 4.2B | 187.12 |
+| d1-3B GGUF Q8_0 | 0.686 | 0.647 | 0.649 | 0.762 | LFM2.5-VL-3B + 決定ヘッド(LiquidAI/d1-3B、GGUF Q8_0) | 3.12B | 16.99 |
+| d1-3B GGUF Q4_K_M | 0.671 | 0.646 | 0.643 | 0.722 | LFM2.5-VL-3B + 決定ヘッド(LiquidAI/d1-3B、GGUF Q4_K_M) | 3.12B | 17.32 |
 | Lev | 0.659 | 0.667 | 0.565 | 0.744 | Qwen3.5-4B + LoRA(interfaze-ai/lev) | 4.66B | 119.94 |
 | Hopper 0-shot | 0.653 | 0.664 | 0.551 | 0.744 | Qwen3.5-4B + LoRA(HopitAI/hopper) | 4.66B | 84.69 |
 | semif-ja 0-shot | 0.621 | 0.604 | 0.539 | 0.719 | Qwen3.5-4B | 4.66B | 90.35 |
 | semif 0-shot | 0.600 | 0.555 | 0.526 | 0.718 | Qwen3.5-4B | 4.66B | 77.89 |
 | AlexWortega_openjev 4B v2 | 0.562 | 0.558 | 0.463 | 0.665 | Qwen3.5-4B(qwen3.5-4b-nli-v2) | 4.54B | 135.85 |
-| modernbert-ja-310m | 0.441 | 0.432 | 0.376 | 0.515 | (直接評価) | 0.315B | 7.56 |
+| d1-omni-600M GGUF Q8_0 | 0.443 | 0.437 | 0.371 | 0.521 | LFM2.5 + 決定ヘッド(LiquidAI/d1-omni-600M、GGUF Q8_0) | 0.6B | 8.65 |
 | laya multilingual | 0.437 | 0.339 | 0.313 | 0.660 | ModernBERT・独自 | 0.161B | 22.18 |
 | CLM v0.1 | 0.409 | 0.423 | 0.289 | 0.516 | Qwen3-8B + 射影ヘッド(Contrastive-LM/CLM-v0.1-8B) | 8.2B | 116.13 |
 
 Overall は Noul(F1)・Choice(accuracy)・Score(正規化 QWK)の等加重平均です。Score は WRIME・Synthetic Score・HelpSteer2-JA(5 軸、
 benchmark-v1 の 2,500 件)を合わせた 12 データセットの平均です。推論時間は 35 データセットの件数加重平均で、Hopper は GPU 単独で
-測り直した値、Jev は API のためネットワーク往復を含みます。2-shot 版(semif・decider)は評価を続行中で、この比較には含めていません。
+測り直した値、Jev は API のためネットワーク往復を含みます。Clef-Flash と d1 は GGUF を llama.cpp の `llama-server`
+(`/v1/systemone`)で実行した値です。2-shot 版(semif・decider)は評価を続行中で、この比較には含めていません。
 全生データとデータセット別の内訳は `results/eval-summary/README.md` にあります。
 
 <p align="center">
@@ -149,7 +155,12 @@ benchmark-v1 の 2,500 件)を合わせた 12 データセットの平均です�
   llama.cpp 経由で約 62ms/件と、HF 版(約 213ms/件)の約 3.4 倍速です。特に Choice(0.749)が強い。
 - **decider-4b v2 は 3 位**(0.690)。同じ Qwen3.5-4B 系の Hopper(0.653)、semif-ja(0.621)より高く、
   Choice で特に差がつきます。
-- **Lev(Qwen3.5-4B + LoRA)は英語学習ながら日本語でも実用的**(Overall 0.659、4 位)。同じ Qwen3.5-4B 系の Hopper
+- **d1-3B(LiquidAI、3.12B)は小型で高速かつ高精度**。Q8_0 で Overall 0.686(4 位)と decider v2(0.690)にほぼ並び、
+  推論は約 17ms/件で、精度が 0.65 を超える手法の中で最も速い。Q4_K_M(1.67GB)でも 0.671 と精度の低下はわずか(-0.015、
+  Score の synthetic 系 2 データセットが主因)です。
+- **d1-omni-600M(0.6B)は日本語ではほぼ機能しなかった**(Overall 0.443、Choice は MMMLU・JMMLU が約 0.30 で偶然水準に近く、
+  Score は 0.5 前後)。推論は約 9ms/件と速いが、精度は laya(0.437)と同水準です。
+- **Lev(Qwen3.5-4B + LoRA)は英語学習ながら日本語でも実用的**(Overall 0.659、6 位)。同じ Qwen3.5-4B 系の Hopper
   (0.653)を上回り、decider には届きません。推論時間は約 120ms/件です。
 - **CLM v0.1 は日本語では機能しなかった**(Overall 0.409、Score は 0.5 前後で判別できていない)。英語で学習されたモデルで、
   Choice も accuracy 0.29 と低い。推論時間は約 89ms/件。
@@ -214,6 +225,7 @@ uv run jev-ja-lab-train-workflow --config configs/train/eikos-laya-bert.yaml
 - decider-4b: <https://huggingface.co/Mapika/decider-4b> / <https://github.com/Mapika/decider>
 - Hopper: <https://huggingface.co/HopitAI/hopper>
 - Clef-Flash: <https://huggingface.co/Cloudflare/clef-flash>(GGUF: <https://huggingface.co/ggml-org/Clef-Flash-GGUF>、実行: <https://github.com/ggml-org/llama.cpp>)
+- d1: <https://huggingface.co/LiquidAI/d1-3B>(GGUF: <https://huggingface.co/LiquidAI/d1-3B-GGUF>)/ <https://huggingface.co/LiquidAI/d1-omni-600M-GGUF>
 - Lev: <https://huggingface.co/interfaze-ai/lev> / <https://github.com/Abhinavexists/lev>
 - Jeff: <https://github.com/firelex/jeff>(モデル: mstrasser/Jeff-Qwen3.5-0.8B, -2B, -Gemma4-E2B)
 - Bekko System One: <https://huggingface.co/hotchpotch/bekko-system-one-v0-400m> / <https://github.com/hotchpotch/bekko-system-one>
@@ -221,7 +233,6 @@ uv run jev-ja-lab-train-workflow --config configs/train/eikos-laya-bert.yaml
 - semif: <https://github.com/TheoLeeCJ/SemIf>
 - AlexWortega/openjev: <https://huggingface.co/AlexWortega/openjev>
 - laya: <https://pypi.org/project/laya/>
-- modernbert-ja-310m: <https://huggingface.co/sbintuitions/modernbert-ja-310m>
 
 データセットの出典・引用先は [openjev-ja-eval](https://huggingface.co/datasets/hachiko85/openjev-ja-eval) の
 Citation Information を参照してください。

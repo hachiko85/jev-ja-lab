@@ -113,6 +113,10 @@ def train_head(
     dtype: str = "float32",
     revision: str | None = None,
     log_every: int = 500,
+    pooling: str = "first",
+    prefix: str = "",
+    standardize: bool = False,
+    candidate_pooling: str = "label",
 ) -> dict[str, Any]:
     import torch
 
@@ -126,7 +130,10 @@ def train_head(
     )
     train_items, val_items = _split_train_val(items, val_fraction, seed)
 
-    encoder = EmbeddingEncoder(model_name, device=device, dtype=dtype, revision=revision)
+    encoder = EmbeddingEncoder(
+        model_name, device=device, dtype=dtype, revision=revision, pooling=pooling, prefix=prefix,
+        standardize=standardize, candidate_pooling=candidate_pooling,
+    )
     head = torch.nn.Linear(encoder.hidden_size, 1).to(device)
     optimizer = torch.optim.Adam(head.parameters(), lr=lr)
     bce_loss = torch.nn.BCEWithLogitsLoss()
@@ -209,6 +216,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--dtype", default="float32")
     parser.add_argument("--revision")
+    parser.add_argument("--pooling", choices=["first", "mean"], default="first")
+    parser.add_argument("--prefix", default="")
+    parser.add_argument("--standardize", action="store_true")
+    parser.add_argument("--candidate-pooling", choices=["label", "span_mean"], default="label")
     return parser
 
 
@@ -230,6 +241,10 @@ def main(argv: list[str] | None = None) -> int:
         device=args.device,
         dtype=args.dtype,
         revision=args.revision,
+        pooling=args.pooling,
+        prefix=args.prefix,
+        standardize=args.standardize,
+        candidate_pooling=args.candidate_pooling,
     )
     print(f"head: {result['head_path']}")
     return 0

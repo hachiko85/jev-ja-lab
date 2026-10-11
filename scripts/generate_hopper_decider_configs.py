@@ -106,6 +106,73 @@ SERIES = {
         "color": "#f6821f",
         "entry": {"scorer": "clef", "model_name": "flash", "quantization": "8bit", "dtype": "bfloat16"},
     },
+    "embeddinggemma2": {
+        "run_name": "eval-embeddinggemma2-series",
+        "model_id": "embeddinggemma-2",
+        "label": "EmbeddingGemma 2 (embedding)",
+        "color": "#4285f4",
+        "entry": {
+            # frozen encoder + a trained Linear head per primitive (openjev_ja.methods.embedding);
+            # mean pooling, the model's classification task prefix, and per-token standardization
+            # because its raw token states are huge (norms ~500-1300). Needs transformers>=5.18,
+            # hence the separate .venv-embeddinggemma environment.
+            "repo_id": "google/embeddinggemma-2", "scorer": "embedding", "dtype": "bfloat16",
+            "pooling": "mean", "prefix": "task: classification | query: ", "standardize": True,
+            "batch_size": 32,
+        },
+        "entry_by_primitive": {
+            "noul": {"head_path": "results/embedding_heads/embeddinggemma-2/noul.pt"},
+            "choice": {"head_path": "results/embedding_heads/embeddinggemma-2/choice.pt", "candidate_pooling": "span_mean"},
+            "score": {"head_path": "results/embedding_heads/embeddinggemma-2/score.pt"},
+        },
+    },
+    "clef-flash-ja-qlora": {
+        "run_name": "eval-clef-flash-ja-qlora-series",
+        "model_id": "clef-flash-ja-qlora",
+        "label": "Clef-Flash + QLoRA (ja+en)",
+        "color": "#d62728",
+        "entry": {
+            # scripts/merge_clef_qlora.py's merged output under models_root; 8bit like the
+            # HF baseline (eval-clef-flash-series) so the two are directly comparable.
+            "scorer": "clef", "path": "clef-flash-ja-qlora", "quantization": "8bit", "dtype": "bfloat16",
+        },
+    },
+    "clef-large-gguf-q4km": {
+        "run_name": "eval-clef-large-gguf-q4km-series",
+        "model_id": "clef-large-gguf-q4km",
+        "label": "Clef (large) GGUF Q4_K_M (llama.cpp)",
+        "color": "#ff7f0e",
+        "entry": {
+            # 19.2GB: larger than the 16GB GPU. Measured on an RTX 5070 Ti: -ngl 99/60 spill into shared
+            # memory (~1.4s/item), -ngl 56 ~270ms, 54 ~290ms (chosen, a little headroom for long
+            # prompts), 48 ~380ms. Omitting -ngl is NOT an option: llama.cpp then shrinks the physical
+            # batch to 1 and rejects any prompt over one token. -b/-ub 8192 holds the longest prompts.
+            "scorer": "clef-gguf", "model_name": "large_q4_k_m",
+            "server_path": "models/llama.cpp/b11541/llama-server.exe", "server_batch_size": 8192,
+            "n_gpu_layers": 54,
+        },
+    },
+    "d1-omni-600m-gguf-q8": {
+        "run_name": "eval-d1-omni-600m-gguf-q8-series",
+        "model_id": "d1-omni-600m-gguf-q8",
+        "label": "d1-omni-600M GGUF Q8_0 (llama.cpp)",
+        "color": "#bcbd22",
+        "entry": {"scorer": "d1-gguf", "model_name": "omni-600m-q8_0"},
+    },
+    "d1-3b-gguf-q4km": {
+        "run_name": "eval-d1-3b-gguf-q4km-series",
+        "model_id": "d1-3b-gguf-q4km",
+        "label": "d1-3B GGUF Q4_K_M (llama.cpp)",
+        "color": "#98df8a",
+        "entry": {"scorer": "d1-gguf", "model_name": "q4_k_m"},
+    },
+    "d1-3b-gguf-q8": {
+        "run_name": "eval-d1-3b-gguf-q8-series",
+        "model_id": "d1-3b-gguf-q8",
+        "label": "d1-3B GGUF Q8_0 (llama.cpp)",
+        "color": "#2ca02c",
+        "entry": {"scorer": "d1-gguf", "model_name": "q8_0"},
+    },
     "clef-flash-gguf-q4km": {
         "run_name": "eval-clef-flash-gguf-q4km-series",
         "model_id": "clef-flash-gguf-q4km",
@@ -181,6 +248,7 @@ def build(name: str, spec: dict) -> Path:
             "id": ids[primitive],
             "label": f"{spec['label']} ({primitive})",
             **spec["entry"],
+            **spec.get("entry_by_primitive", {}).get(primitive, {}),
             "primitive": primitive,
             "batch_size": 1,
             "color": spec["color"],
