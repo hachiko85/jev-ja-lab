@@ -21,15 +21,23 @@ from openjev_ja.common.candidate_labels import ANSWER_LABELS
 PRIMITIVES = ("choice", "score", "noul")
 
 
-def build_candidate_prompt(question: str, options: list[str]) -> tuple[str, list[tuple[int, int]]]:
-    """Join question + labeled candidates into one string; return each label's char span."""
+def build_candidate_prompt(
+    question: str, options: list[str], *, whole_option: bool = False
+) -> tuple[str, list[tuple[int, int]]]:
+    """Join question + labeled candidates into one string; return each candidate's char span.
+
+    The span is the answer-label character ("A") by default, or the whole "A. option" line when
+    `whole_option` is set (for encoders whose individual label-token states carry little
+    information, so the candidate is read as the mean over all of its tokens instead).
+    """
     labels = ANSWER_LABELS[: len(options)]
     text = f"{question}\n"
     spans: list[tuple[int, int]] = []
     for label, option in zip(labels, options, strict=True):
         start = len(text)
-        spans.append((start, start + len(label)))
-        text += f"{label}. {option}\n"
+        line = f"{label}. {option}"
+        spans.append((start, start + (len(line) if whole_option else len(label))))
+        text += f"{line}\n"
     return text, spans
 
 
@@ -86,7 +94,15 @@ class EmbeddingEncoder:
         dtype: str = "float32",
         revision: str | None = None,
         max_length: int = 1024,
+        pooling: str = "first",
+        prefix: str = "",
+        standardize: bool = False,
+        candidate_pooling: str = "label",
     ) -> None:
+        if candidate_pooling not in ("label", "span_mean"):
+            raise ValueError(f"candidate_pooling must be 'label' or 'span_mean', got {candidate_pooling!r}")
+        if pooling not in ("first", "mean"):
+            raise ValueError(f"pooling must be 'first' or 'mean', got {pooling!r}")
         try:
             import torch
             from transformers import AutoModel, AutoTokenizer
@@ -116,7 +132,22 @@ class EmbeddingEncoder:
         self.device = device
         self.dtype = dtype
         self.max_length = min(int(max_length), int(self.tokenizer.model_max_length or max_length))
-        self.hidden_size = int(self.model.config.hidden_size)
+        # Noul reads one vector per statement: the first token (BERT/ModernBERT-style [CLS]/<s>)
+        # or, for encoders trained with mean pooling (e.g. EmbeddingGemma), the mean over real
+        # tokens. `prefix` is prepended to every input (e.g. EmbeddingGemma's task prefix).
+        self.pooling = pooling
+        self.prefix = prefix
+        # Per-token standardization (LayerNorm without parameters) for encoders whose raw token
+        # states are very large (EmbeddingGemma 2: norms of ~500-1300), which makes a Linear head
+        # at lr 1e-3 diverge.
+        self.standardize = standardize
+        self.candidate_pooling = candidate_pooling
+        config = self.model.config
+        hidden = getattr(config, "hidden_size", None)
+        if hidden is None:  # multimodal wrappers keep the output width on the text config
+            text_config = getattr(config, "text_config", None)
+            hidden = getattr(text_config, "embedding_dim", None) or getattr(text_config, "hidden_size", None)
+        self.hidden_size = int(hidden)
 
     def _forward(self, text: str) -> tuple[Any, list[tuple[int, int]]]:
         encoded = self.tokenizer(
@@ -136,19 +167,47 @@ class EmbeddingEncoder:
             # trainable head (always float32) needs a matching dtype, the same
             # way other methods cast logits to float before comparing them.
             hidden_state = self.model(**encoded).last_hidden_state[0].float()
+        if self.standardize:
+            hidden_state = self._torch.nn.functional.layer_norm(hidden_state, hidden_state.shape[-1:])
         return hidden_state, offsets
 
     def candidate_states(self, question: str, options: list[str]) -> Any:
         """Return one hidden-state vector per candidate: shape (len(options), hidden_size)."""
-        text, spans = build_candidate_prompt(question, options)
+        text, spans = self._with_prefix(
+            *build_candidate_prompt(question, options, whole_option=self.candidate_pooling == "span_mean")
+        )
         hidden_state, offsets = self._forward(text)
-        token_indices = _candidate_token_indices(offsets, spans)
-        return hidden_state[token_indices]
+        return self._candidates(hidden_state, offsets, spans)
+
+    def _candidates(
+        self, hidden_state: Any, offsets: list[tuple[int, int]], spans: list[tuple[int, int]]
+    ) -> Any:
+        if self.candidate_pooling == "label":
+            return hidden_state[_candidate_token_indices(offsets, spans)]
+        rows = []
+        for start, end in spans:
+            inside = [i for i, (a, b) in enumerate(offsets) if a != b and a < end and b > start]
+            if not inside:  # truncated away: same last-real-token fallback as the label mode
+                inside = [_last_real_token_index(offsets)]
+            rows.append(hidden_state[inside].mean(dim=0))
+        return self._torch.stack(rows)
+
+    def _with_prefix(
+        self, text: str, spans: list[tuple[int, int]]
+    ) -> tuple[str, list[tuple[int, int]]]:
+        shift = len(self.prefix)
+        return self.prefix + text, [(start + shift, end + shift) for start, end in spans]
+
+    def _pool(self, hidden_state: Any, offsets: list[tuple[int, int]]) -> Any:
+        if self.pooling == "first":
+            return hidden_state[0]
+        real = [i for i, (start, end) in enumerate(offsets) if start != end]
+        return hidden_state[real].mean(dim=0)
 
     def statement_state(self, text: str) -> Any:
-        """Return the sequence's first-token hidden state: shape (hidden_size,)."""
-        hidden_state, _ = self._forward(text)
-        return hidden_state[0]
+        """Return the statement's representative hidden state: shape (hidden_size,)."""
+        hidden_state, offsets = self._forward(self.prefix + text)
+        return self._pool(hidden_state, offsets)
 
     def _forward_batch(self, texts: list[str]) -> tuple[Any, list[list[tuple[int, int]]]]:
         encoded = self.tokenizer(
@@ -163,6 +222,8 @@ class EmbeddingEncoder:
         encoded = {key: value.to(self.device) for key, value in encoded.items()}
         with self._torch.no_grad():
             hidden_states = self.model(**encoded).last_hidden_state.float()
+        if self.standardize:
+            hidden_states = self._torch.nn.functional.layer_norm(hidden_states, hidden_states.shape[-1:])
         return hidden_states, offsets
 
     def candidate_states_batch(self, items: list[tuple[str, list[str]]]) -> list[Any]:
@@ -175,21 +236,24 @@ class EmbeddingEncoder:
         texts: list[str] = []
         spans_per_item: list[list[tuple[int, int]]] = []
         for question, options in items:
-            text, spans = build_candidate_prompt(question, options)
+            text, spans = self._with_prefix(
+                *build_candidate_prompt(question, options, whole_option=self.candidate_pooling == "span_mean")
+            )
             texts.append(text)
             spans_per_item.append(spans)
         hidden_states, offsets_per_item = self._forward_batch(texts)
         results = []
         rows = zip(hidden_states, spans_per_item, offsets_per_item, strict=True)
         for row, spans, offsets in rows:
-            token_indices = _candidate_token_indices(offsets, spans)
-            results.append(row[token_indices])
+            results.append(self._candidates(row, offsets, spans))
         return results
 
     def statement_states_batch(self, texts: list[str]) -> Any:
         """Batched `statement_state`: shape (len(texts), hidden_size)."""
-        hidden_states, _ = self._forward_batch(texts)
-        return hidden_states[:, 0, :]
+        hidden_states, offsets_per_item = self._forward_batch([self.prefix + t for t in texts])
+        return self._torch.stack(
+            [self._pool(row, offsets) for row, offsets in zip(hidden_states, offsets_per_item, strict=True)]
+        )
 
 
 def head_state_path(root: str | Path, model_id: str, primitive: str) -> Path:

@@ -30,7 +30,8 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "results/eval-summary"
 
 COLORS = ["#4b83ad", "#f28e2b", "#59a14f", "#e15759", "#b07aa1",
-          "#76b7b2", "#edc948", "#ff9da7", "#9c755f", "#17becf", "#8c564b"]
+          "#76b7b2", "#edc948", "#ff9da7", "#9c755f", "#17becf", "#8c564b",
+          "#d37295", "#499894", "#b6992d", "#79706e"]
 
 # 2-shot variants (semif, decider) are evaluated but left out of the charts for now.
 # (model_id in eval_summary.json's `models[]`, or {noul,choice,score} model
@@ -61,12 +62,6 @@ GROUPS = [
         "label_top": "laya multilingual", "label_bottom": "ModernBERT・独自 (0.161B)",
         "noul": "laya-multilingual-noul", "choice": "laya-multilingual-choice",
         "score": "laya-multilingual-score", "params_b": 0.161, "latency_ms": 18.32,
-    },
-    {
-        "method": "bert: modernbert-ja-310m",
-        "helpsteer": "modernbert-ja-310m",
-        "label_top": "modernbert-ja-310m", "label_bottom": "(0.315B)",
-        "single": "modernbert-ja-310m", "params_b": 0.315, "latency_ms": 2.38,
     },
     {
         "method": "Hopper(zero-shot)",
@@ -106,6 +101,26 @@ GROUPS = [
         "label_top": "Clef-Flash GGUF Q4_K_M", "label_bottom": "Qwen3.5-9B + 決定ヘッド (9.08B)",
         "noul": "clef-flash-gguf-q4km-noul", "choice": "clef-flash-gguf-q4km-choice",
         "score": "clef-flash-gguf-q4km-score", "params_b": 9.08, "latency_ms": 62.16,
+    },
+    {
+        # LiquidAI/d1-3B (decision model on LFM2.5-VL-3B), Liquid AI's GGUF export run by
+        # llama.cpp's llama-server /v1/systemone. Standard 35-dataset profile (item-weighted latency).
+        "method": "d1-3B(GGUF Q8_0)",
+        "label_top": "d1-3B GGUF Q8_0", "label_bottom": "LFM2.5-VL-3B + 決定ヘッド (3.12B)",
+        "noul": "d1-3b-gguf-q8-noul", "choice": "d1-3b-gguf-q8-choice", "score": "d1-3b-gguf-q8-score",
+        "params_b": 3.12, "latency_ms": 16.99,
+    },
+    {
+        "method": "d1-3B(GGUF Q4_K_M)",
+        "label_top": "d1-3B GGUF Q4_K_M", "label_bottom": "LFM2.5-VL-3B + 決定ヘッド (3.12B)",
+        "noul": "d1-3b-gguf-q4km-noul", "choice": "d1-3b-gguf-q4km-choice", "score": "d1-3b-gguf-q4km-score",
+        "params_b": 3.12, "latency_ms": 17.32,
+    },
+    {
+        "method": "d1-omni-600M(GGUF Q8_0)",
+        "label_top": "d1-omni-600M GGUF Q8_0", "label_bottom": "LFM2.5 + 決定ヘッド (0.6B)",
+        "noul": "d1-omni-600m-gguf-q8-noul", "choice": "d1-omni-600m-gguf-q8-choice",
+        "score": "d1-omni-600m-gguf-q8-score", "params_b": 0.6, "latency_ms": 8.65,
     },
     {
         # Version pinned from the API's own response_model field, not guessed.
@@ -385,7 +400,11 @@ def _render_radar(
     count = len(axis_labels)
     angles = [i * 2 * math.pi / count for i in range(count)]
     closed_angles = [*angles, angles[0]]
-    figure, axis = plt.subplots(figsize=(13, 13.8), subplot_kw={"polar": True})
+    # The one-column legend below the polar axes needs ~0.235in per entry; the plot and the top
+    # margin keep their size (13.8in tall fit 11 entries), so the figure grows with the entry count.
+    top_in, legend_in = 1.93, max(2.76, 0.235 * len(series) + 0.3)
+    fig_height = top_in + 9.1 + legend_in
+    figure, axis = plt.subplots(figsize=(13, fig_height), subplot_kw={"polar": True})
     figure.patch.set_facecolor(theme["figure_color"])
     axis.set_facecolor(theme["plot_color"])
     axis.set_theta_offset(math.pi / 2)
@@ -407,12 +426,12 @@ def _render_radar(
         axis.plot(closed_angles, values, color=item["color"], linewidth=2.2,
                   marker="o", markersize=4.5, label=item["name"])
         axis.fill(closed_angles, values, color=item["color"], alpha=0.06)
-    figure.suptitle(title, fontsize=19, fontweight="bold", y=0.965, color=theme["text_color"])
-    figure.text(0.5, 0.935, subtitle, ha="center", color=theme["muted_color"], fontsize=10)
+    figure.suptitle(title, fontsize=19, fontweight="bold", y=1 - 0.483 / fig_height, color=theme["text_color"])
+    figure.text(0.5, 1 - 0.897 / fig_height, subtitle, ha="center", color=theme["muted_color"], fontsize=10)
     legend = axis.legend(loc="upper center", bbox_to_anchor=(0.5, -0.11), ncol=1, frameon=False)
     for text in legend.get_texts():
         text.set_color(theme["text_color"])
-    figure.subplots_adjust(top=0.86, bottom=0.20, left=h_margin, right=1 - h_margin)
+    figure.subplots_adjust(top=1 - top_in / fig_height, bottom=legend_in / fig_height, left=h_margin, right=1 - h_margin)
     figure.savefig(out_path, dpi=180)
     plt.close(figure)
     print("wrote", out_path)

@@ -52,6 +52,7 @@ class ClefScorer:
         quantization: str = "8bit",
         gpu_memory_gib: float = 14.0,
         cpu_memory_gib: float = 48.0,
+        model_dir: str | None = None,
         model_id: str | None = None,
     ) -> None:
         if primitive not in PRIMITIVES:
@@ -73,7 +74,9 @@ class ClefScorer:
         self.device = device
         self.quantization = quantization
         self.model_id = model_id or f"clef-{model_name}"
-        folder = Path(snapshot_download(self.repo_id, revision=self.revision))
+        # `model_dir`: a local checkpoint with the same file layout as the release (e.g. a
+        # LoRA-merged fine-tune), used instead of the pinned Hub snapshot.
+        folder = Path(model_dir) if model_dir else Path(snapshot_download(self.repo_id, revision=self.revision))
         self._release = _import_release_module(folder)
 
         kwargs: dict = {"dtype": torch.bfloat16}

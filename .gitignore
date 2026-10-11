@@ -16,3 +16,6 @@ datasets/*
 !datasets/.gitkeep
 assets/branding/.repo_qr_cache.png
 build/
+
+# per-library isolated environments (e.g. .venv-embeddinggemma for transformers>=5.18)
+.venv-*/

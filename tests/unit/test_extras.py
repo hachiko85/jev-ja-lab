@@ -18,6 +18,7 @@ SCORER_EXTRAS = {
     "clm": "clm",
     "clef": "clef",
     "clef-gguf": "clef",
+    "d1-gguf": "d1",
     "lev": "lev",
     "jeff": "jeff",
     "bekko-system-one": "bekko-system-one",

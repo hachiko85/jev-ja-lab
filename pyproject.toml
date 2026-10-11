@@ -84,6 +84,12 @@ clef = [
   "bitsandbytes>=0.45",
   "pillow",
 ]
+# LiquidAI/d1-3B (decision model on LFM2.5-VL-3B), run as Liquid AI's GGUF through llama.cpp's
+# `llama-server` `/v1/systemone`. No Python dependencies beyond the shared runtime; it needs a
+# llama.cpp build with `lfm2-d1` decision-model support (b11541 runs d1-3B and d1-omni-600M; b11485
+# only d1-3B; b11430 neither) placed at
+# models/llama.cpp/<tag>/llama-server.exe.
+d1 = ["jev-ja-lab[eval,orchestrate]"]
 # hotchpotch/bekko-system-one-v0: custom trust_remote_code inference class, loaded via
 # transformers.dynamic_module_utils (the model's own recommended path). Needs
 # sentence-transformers + scikit-learn, installed --no-deps (sentence-transformers would
@@ -105,7 +111,7 @@ jevlike = [
   "jevlike[transformers] @ git+https://github.com/vinnylarouge/jevlike.git",
 ]
 all = [                       # every library above except the decider-ai step
-  "jev-ja-lab[jev,semif,semif-ja,bert,embedding,openjev,clm,clef,lev,jeff,bekko-system-one,hopper,decider,laya,laya-bert,jevlike]",
+  "jev-ja-lab[jev,semif,semif-ja,bert,embedding,openjev,clm,clef,d1,lev,jeff,bekko-system-one,hopper,decider,laya,laya-bert,jevlike]",
 ]
 dev = [
   "pytest>=8.3",

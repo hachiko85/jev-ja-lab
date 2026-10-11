@@ -33,6 +33,10 @@ class EmbeddingScorer:
         revision: str | None = None,
         model_id: str | None = None,
         metadata_revision: str | None = None,
+        pooling: str = "first",
+        prefix: str = "",
+        standardize: bool = False,
+        candidate_pooling: str = "label",
     ) -> None:
         if primitive not in PRIMITIVES:
             raise ValueError(f"unsupported primitive: {primitive}")
@@ -52,7 +56,8 @@ class EmbeddingScorer:
         self.metadata_revision = metadata_revision
         self.head_path = Path(head_path)
         self.encoder = EmbeddingEncoder(
-            model_name, device=device, dtype=dtype, revision=revision
+            model_name, device=device, dtype=dtype, revision=revision, pooling=pooling, prefix=prefix,
+            standardize=standardize, candidate_pooling=candidate_pooling,
         )
         self.head = torch.nn.Linear(self.encoder.hidden_size, 1)
         state_dict = torch.load(self.head_path, map_location=device, weights_only=True)
